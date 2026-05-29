@@ -83,25 +83,41 @@ function Slider({
 
 const MONTHS = 12;
 
-/* Catmull-Rom → cubic bezier: turns a list of points into a smooth, flowing
-   curve instead of straight segments. */
-function smoothPath(points: number[][]): string {
+/* Catmull-Rom → cubic bezier. `tension` < 1 makes the curve looser / curvier
+   (controls how far the bezier handles reach). */
+function smoothPath(points: number[][], tension = 0.5): string {
   if (points.length < 2) return "";
   const p = points;
+  const k = (1 - tension) * 2 + 1; // handle length factor (smaller tension → curvier)
+  const f = 6 / k;
   let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`;
   for (let i = 0; i < p.length - 1; i++) {
     const p0 = p[i - 1] || p[i];
     const p1 = p[i];
     const p2 = p[i + 1];
     const p3 = p[i + 2] || p2;
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    const c1x = p1[0] + (p2[0] - p0[0]) / f;
+    const c1y = p1[1] + (p2[1] - p0[1]) / f;
+    const c2x = p2[0] - (p3[0] - p1[0]) / f;
+    const c2y = p2[1] - (p3[1] - p1[1]) / f;
     d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
   }
   return d;
 }
+
+/* Organic month-to-month variation: the cumulative line still always rises,
+   but the slope swells and eases so the curve has real, flowing bends
+   (not a straight diagonal). Weights are positive → strictly increasing. */
+const WAVE_WEIGHTS = Array.from({ length: MONTHS }, (_, i) =>
+  Math.max(0.12, (0.45 + i * 0.14) * (1 + 0.8 * Math.sin(i * 1.15 + 0.5)))
+);
+const WAVE_TOTAL = WAVE_WEIGHTS.reduce((a, b) => a + b, 0);
+const WAVE_CUM = WAVE_WEIGHTS.reduce<number[]>((acc, w, i) => {
+  acc.push((acc[i - 1] || 0) + w);
+  return acc;
+}, []);
+const cumFrac = (m: number) =>
+  m <= 0 ? 0 : WAVE_CUM[Math.min(m, MONTHS) - 1] / WAVE_TOTAL;
 
 export default function ROICalculator() {
   const [missed, setMissed] = useState(roiDefaults.missedCallsDefault);
@@ -147,20 +163,20 @@ export default function ROICalculator() {
   const yMax = Math.max(120000, lostPerYear * 1.15);
   const x = (m: number) => padL + (innerW * m) / MONTHS;
   const y = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
-  // Gentle convex growth so the line arcs upward (a flowing curve, not a
-  // ruler-straight diagonal). Endpoint at month 12 stays the true yearly total.
-  const frac = (m: number) => Math.pow(m / MONTHS, 1.32);
-  const lossAt = (m: number) => lostPerYear * frac(m);
-  const revaAt = (m: number) => lostPerYear * residual * frac(m);
+  // Wavy, organic climb — slope swells and eases each month (always rising).
+  // Endpoint at month 12 stays the true yearly total.
+  const lossAt = (m: number) => lostPerYear * cumFrac(m);
+  const revaAt = (m: number) => lostPerYear * residual * cumFrac(m);
 
   const lossPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(lossAt(m))]);
   const revaPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(revaAt(m))]);
 
-  const lossLine = smoothPath(lossPts);
-  const revaLine = smoothPath(revaPts);
+  const T = 0.28; // lower tension = curvier
+  const lossLine = smoothPath(lossPts, T);
+  const revaLine = smoothPath(revaPts, T);
   // savings area = the smooth loss curve (top) flowing back along the reva curve
   const savingsArea =
-    lossLine + " " + smoothPath([...revaPts].reverse()).replace(/^M/, "L") + " Z";
+    lossLine + " " + smoothPath([...revaPts].reverse(), T).replace(/^M/, "L") + " Z";
   // residual loss area (under the reva curve)
   const residualArea = `${revaLine} L ${x(MONTHS).toFixed(1)} ${bottom.toFixed(1)} L ${x(0).toFixed(1)} ${bottom.toFixed(1)} Z`;
 
