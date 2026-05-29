@@ -1,115 +1,172 @@
-import { Phone, MessageSquare, CalendarClock, Check } from "lucide-react";
+import { Phone, MessageSquare, CalendarClock, Check, Zap, Clock, ArrowUpRight } from "lucide-react";
 import Section from "@/components/ui/Section";
 import Reveal from "@/components/ui/Reveal";
+import Pill from "@/components/ui/Pill";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
 /* ── Data ─────────────────────────────────────────────────────── */
+type Feature = { text: string; detail?: string };
 type Agent = {
+  index: string;
   icon: ReactNode;
-  gradient: string;
-  glowColor: string;
   title: string;
   description: string;
-  features: string[];
+  features: Feature[];
+  pill: string;
+  tag: string;
+  stat: string;
+  statLabel: string;
 };
 
 const agents: Agent[] = [
   {
-    icon: <Phone size={22} />,
-    gradient: "from-cyan to-accent",
-    glowColor: "rgba(34,211,238,0.25)",
+    index: "01",
+    icon: <Phone size={18} strokeWidth={2} />,
     title: "Voice Receptionist",
     description:
       "Answers every inbound call instantly — day, night, weekend, holiday. Reva sounds human, stays patient, and never puts a caller on hold.",
     features: [
-      "Answers & qualifies callers in under 1 second",
-      "Books appointments directly in your PMS",
-      "Handles after-hours & overflow calls seamlessly",
+      { text: "Answers & qualifies callers in under 1 second", detail: "sub-second pickup" },
+      { text: "Books appointments directly in your PMS", detail: "no portal switch" },
+      { text: "Handles after-hours & overflow calls seamlessly", detail: "24 / 7 / 365" },
     ],
+    pill: "Live in days",
+    tag: "VOICE",
+    stat: "<1s",
+    statLabel: "avg pickup time",
   },
   {
-    icon: <MessageSquare size={22} />,
-    gradient: "from-accent to-accent-2",
-    glowColor: "rgba(99,102,241,0.25)",
+    index: "02",
+    icon: <MessageSquare size={18} strokeWidth={2} />,
     title: "Chat & WhatsApp Agent",
     description:
       "Replies instantly on your website live-chat, SMS, and WhatsApp — capturing leads the moment they reach out, even at 2 a.m.",
     features: [
-      "Web chat widget set up in minutes",
-      "WhatsApp & SMS inbound handling",
-      "Converts inquiries into booked appointments",
+      { text: "Web chat widget set up in minutes", detail: "copy-paste install" },
+      { text: "WhatsApp & SMS inbound handling", detail: "multi-channel" },
+      { text: "Converts inquiries into booked appointments", detail: "auto-book" },
     ],
+    pill: "Multi-channel",
+    tag: "MESSAGING",
+    stat: "3×",
+    statLabel: "more leads captured",
   },
   {
-    icon: <CalendarClock size={22} />,
-    gradient: "from-accent-2 to-cyan",
-    glowColor: "rgba(139,92,246,0.25)",
+    index: "03",
+    icon: <CalendarClock size={18} strokeWidth={2} />,
     title: "Patient Recall Agent",
     description:
       "Automatically re-engages lapsed patients via text or voice — filling your schedule with patients who already know and trust your clinic.",
     features: [
-      "Targets patients overdue for recall or hygiene",
-      "Personalised outreach cadence (call → text → follow-up)",
-      "Fills last-minute cancellation slots automatically",
+      { text: "Targets patients overdue for recall or hygiene", detail: "smart segmentation" },
+      { text: "Personalised outreach cadence (call → text → follow-up)", detail: "auto-sequence" },
+      { text: "Fills last-minute cancellation slots automatically", detail: "real-time fill" },
     ],
+    pill: "Auto-sequences",
+    tag: "RECALL",
+    stat: "40%",
+    statLabel: "reactivation rate",
   },
 ];
 
 /* ── Card ─────────────────────────────────────────────────────── */
-function AgentCard({ agent, index }: { agent: Agent; index: number }) {
+function AgentCard({ agent, delay }: { agent: Agent; delay: number }) {
   return (
-    <Reveal delay={0.1 + index * 0.08}>
+    <Reveal delay={delay}>
       <div
         className={cn(
-          "group relative flex flex-col gap-6 rounded-2xl border border-white/8 bg-ink-2/60 p-8",
-          "backdrop-blur-sm transition-all duration-500",
-          "hover:-translate-y-1.5 hover:border-white/15",
-          "hover:shadow-[0_24px_60px_-12px_var(--card-glow,rgba(99,102,241,0.2))]"
+          "card group relative flex flex-col overflow-hidden p-0",
+          "transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "hover:-translate-y-1 hover:shadow-[0_16px_40px_-12px_rgba(15,44,26,0.15)]"
         )}
-        style={{ "--card-glow": agent.glowColor } as React.CSSProperties}
       >
-        {/* Top stripe */}
-        <div
-          className={cn(
-            "absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent to-transparent",
-            "via-white/20 group-hover:via-white/40 transition-all duration-500"
-          )}
-        />
-
-        {/* Icon tile */}
-        <div
-          className={cn(
-            "flex h-12 w-12 items-center justify-center rounded-xl text-white",
-            "bg-gradient-to-br shadow-lg",
-            agent.gradient
-          )}
-          style={{
-            boxShadow: `0 8px 24px -4px ${agent.glowColor}`,
-          }}
-        >
-          {agent.icon}
+        {/* Dotted top band */}
+        <div className="dotted-tight h-12 w-full bg-mint border-b border-line-soft relative">
+          {/* Index + tag in the band */}
+          <div className="absolute inset-0 flex items-center justify-between px-5">
+            <span className="font-mono text-[0.65rem] font-bold text-sage tracking-widest uppercase">
+              [{agent.index}]
+            </span>
+            <span className="mono-label text-sage/80">{agent.tag}</span>
+          </div>
         </div>
 
-        {/* Title + description */}
-        <div className="flex flex-col gap-2">
-          <h3 className="font-display text-xl font-semibold text-paper">
-            {agent.title}
-          </h3>
-          <p className="text-slate text-sm leading-relaxed">{agent.description}</p>
-        </div>
+        {/* Main body */}
+        <div className="flex flex-col gap-5 p-6 flex-1">
+          {/* Icon tile + stat */}
+          <div className="flex items-start justify-between">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-forest text-lime shadow-[0_4px_12px_-2px_rgba(22,58,34,0.4)]">
+              {agent.icon}
+            </div>
+            {/* Micro stat chip */}
+            <div className="text-right">
+              <div className="font-mono text-xl font-bold text-ink leading-none">{agent.stat}</div>
+              <div className="mono-label mt-0.5 text-sage/70">{agent.statLabel}</div>
+            </div>
+          </div>
 
-        {/* Feature bullets */}
-        <ul className="mt-auto space-y-2.5 border-t border-white/8 pt-6">
-          {agent.features.map((feat) => (
-            <li key={feat} className="flex items-start gap-2.5">
-              <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-cyan/10">
-                <Check size={10} className="text-cyan" strokeWidth={3} />
-              </span>
-              <span className="text-paper/75 text-sm leading-snug">{feat}</span>
-            </li>
-          ))}
-        </ul>
+          {/* Title */}
+          <div>
+            <h3 className="font-display text-xl font-bold text-ink leading-snug">
+              {agent.title}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{agent.description}</p>
+          </div>
+
+          {/* Feature rows */}
+          <ul className="mt-auto space-y-0 border-t border-line-soft pt-4">
+            {agent.features.map((feat, i) => (
+              <li
+                key={feat.text}
+                className={cn(
+                  "flex items-start gap-2.5 py-2.5",
+                  i < agent.features.length - 1 && "border-b border-line-soft"
+                )}
+              >
+                <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-lime/30">
+                  <Check size={9} className="text-lime-ink" strokeWidth={3.5} />
+                </span>
+                <span className="flex-1 text-xs leading-snug text-muted">{feat.text}</span>
+                {feat.detail && (
+                  <span className="shrink-0 mono-label text-sage/60">{feat.detail}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-1">
+            <Pill tone="mint" mono check>
+              {agent.pill}
+            </Pill>
+            <span className="flex items-center gap-1 mono-label text-sage/60 hover:text-lime-ink transition-colors cursor-pointer">
+              learn more <ArrowUpRight size={11} />
+            </span>
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+/* ── Uptime strip ─────────────────────────────────────────────── */
+function UptimeStrip() {
+  const items = [
+    { icon: <Clock size={11} />, label: "24 / 7 / 365 coverage" },
+    { icon: <Zap size={11} />, label: "Sub-second response" },
+    { icon: <Check size={11} strokeWidth={3} />, label: "PMS-integrated booking" },
+    { icon: <Phone size={11} />, label: "Unlimited concurrent calls" },
+  ];
+  return (
+    <Reveal delay={0.35}>
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+        {items.map((item, i) => (
+          <span key={i} className="flex items-center gap-1.5 mono-label text-sage/80">
+            <span className="text-lime-ink">{item.icon}</span>
+            {item.label}
+          </span>
+        ))}
       </div>
     </Reveal>
   );
@@ -119,20 +176,23 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
 export default function AgentTypes() {
   return (
     <Section
-      eyebrow="What We Build"
+      id="agents"
+      index="04"
+      label="WHAT WE BUILD"
       title={
         <>
-          Three AI agents,{" "}
-          <span className="text-gradient">one front desk that never sleeps</span>
+          Three agents,{" "}
+          <span className="text-lime-ink">one front desk that never sleeps.</span>
         </>
       }
       intro="Reva AI deploys the right agent for every touchpoint — phone, text, or web — so your clinic captures every opportunity around the clock."
     >
-      <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
         {agents.map((agent, i) => (
-          <AgentCard key={agent.title} agent={agent} index={i} />
+          <AgentCard key={agent.title} agent={agent} delay={0.08 + i * 0.08} />
         ))}
       </div>
+      <UptimeStrip />
     </Section>
   );
 }

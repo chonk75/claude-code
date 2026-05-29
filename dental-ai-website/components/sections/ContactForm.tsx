@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CheckCircle, Phone } from "lucide-react";
 import Button from "@/components/ui/Button";
+import Pill from "@/components/ui/Pill";
 import { contact } from "@/lib/config";
 
 type FormState = {
@@ -23,9 +24,9 @@ const EMPTY: FormState = {
 
 /* ── Shared input classes ───────────────────────────────────── */
 const inputBase =
-  "w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-paper placeholder:text-slate/50 text-sm leading-relaxed " +
-  "focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent " +
-  "transition-colors duration-200 hover:border-white/20";
+  "w-full rounded-xl bg-surface border border-line px-4 py-3 text-ink placeholder:text-muted/50 text-sm leading-relaxed " +
+  "focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent " +
+  "transition-colors duration-200 hover:border-ink/20";
 
 /* ── Field wrapper ──────────────────────────────────────────── */
 function Field({
@@ -39,10 +40,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-slate uppercase tracking-wider">
+      <label className="mono-label flex items-center gap-2">
         {label}
         {optional && (
-          <span className="ml-1.5 text-slate/50 normal-case tracking-normal">
+          <span className="text-sage/60 normal-case tracking-normal font-sans text-[0.7rem] not-uppercase">
             (optional)
           </span>
         )}
@@ -79,20 +80,20 @@ export default function ContactForm() {
   /* ── Success state ── */
   if (submitted) {
     return (
-      <div className="glass rounded-3xl p-8 md:p-10 border border-white/10 flex flex-col items-center text-center gap-6 min-h-[420px] justify-center">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan to-accent flex items-center justify-center shadow-[0_0_30px_-6px_rgba(34,211,238,0.6)]">
-          <CheckCircle size={30} className="text-white" />
+      <div className="card p-8 md:p-10 flex flex-col items-center text-center gap-6 min-h-[420px] justify-center bg-mint dotted-tight">
+        <div className="w-16 h-16 rounded-full bg-mint-2 border border-lime/40 flex items-center justify-center">
+          <CheckCircle size={30} className="text-lime-ink" />
         </div>
         <div>
-          <h3 className="font-display text-2xl font-semibold text-paper mb-2">
+          <h3 className="font-display text-2xl font-semibold text-ink mb-2">
             Message received!
           </h3>
-          <p className="text-slate leading-relaxed max-w-sm">
+          <p className="text-muted leading-relaxed max-w-sm">
             Thanks — {contact.salesName} will reach out shortly. Prefer to talk
             now?{" "}
             <a
               href={contact.telLink}
-              className="text-cyan font-medium hover:underline"
+              className="text-lime-ink font-medium hover:underline"
             >
               Call {contact.phoneDisplay}
             </a>
@@ -113,16 +114,26 @@ export default function ContactForm() {
 
   /* ── Form ── */
   return (
-    <div className="glass rounded-3xl p-8 md:p-10 border border-white/10">
+    <div className="card p-8 md:p-10 bg-surface">
+      {/* Header */}
       <div className="mb-8">
-        <h2 className="font-display text-2xl font-semibold text-paper mb-2">
-          Send us a message
-        </h2>
-        <p className="text-slate text-sm leading-relaxed">
+        <div className="flex items-center gap-3 mb-3">
+          <h2 className="font-display text-2xl font-semibold text-ink">
+            Send us a message
+          </h2>
+          {/* "we reply fast" indicator */}
+          <span className="flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-widest text-lime-ink">
+            <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot" />
+            We reply fast
+          </span>
+        </div>
+        <p className="text-muted text-sm leading-relaxed">
           Fill in the form and {contact.salesName} will get back to you within
           the hour during business hours.
         </p>
       </div>
+
+      <div className="h-px bg-line-soft mb-7" />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -192,11 +203,18 @@ export default function ContactForm() {
           />
         </Field>
 
+        {/* Footer details row */}
+        <div className="flex items-center gap-2 pt-1">
+          <Pill tone="mint" mono check>Replies within 1 hr</Pill>
+          <Pill tone="gray" mono>No spam</Pill>
+        </div>
+
         <Button
           type="submit"
           size="lg"
-          className="w-full mt-2"
+          className="w-full mt-1"
           disabled={loading}
+          arrow={!loading}
         >
           {loading ? (
             <>
@@ -208,9 +226,9 @@ export default function ContactForm() {
           )}
         </Button>
 
-        <p className="text-slate/50 text-xs text-center">
+        <p className="text-muted/70 text-xs text-center">
           Or call / text {contact.salesName} directly at{" "}
-          <a href={contact.telLink} className="text-slate hover:text-cyan transition-colors">
+          <a href={contact.telLink} className="text-ink hover:text-lime-ink transition-colors font-medium">
             {contact.phoneDisplay}
           </a>
         </p>

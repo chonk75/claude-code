@@ -1,70 +1,75 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ComponentProps, ReactNode } from "react";
 
-type Variant = "primary" | "ghost" | "outline";
+type Variant = "primary" | "outline" | "link" | "lime";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "relative inline-flex items-center justify-center gap-2 rounded-full font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink disabled:opacity-50 disabled:pointer-events-none";
+  "group relative inline-flex items-center justify-center gap-2 font-medium transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
   primary:
-    "text-white bg-gradient-to-r from-cyan via-accent to-accent-2 bg-[length:200%_100%] hover:bg-[position:100%_0] shadow-[0_10px_40px_-12px_var(--color-accent)] hover:shadow-[0_18px_50px_-10px_var(--color-accent)] hover:-translate-y-0.5",
-  ghost: "text-paper/80 hover:text-white hover:bg-white/5",
+    "rounded-2xl bg-forest text-white hover:bg-forest-deep shadow-[0_10px_30px_-12px_rgba(15,44,26,0.6)] hover:-translate-y-0.5",
+  lime: "rounded-2xl bg-lime text-forest-deep hover:brightness-105 shadow-[0_10px_30px_-12px_rgba(124,223,19,0.8)] hover:-translate-y-0.5",
   outline:
-    "text-white border border-white/15 hover:border-white/40 hover:bg-white/5",
+    "rounded-2xl border border-line bg-surface/60 text-ink hover:border-ink/30 hover:bg-surface",
+  link: "text-ink underline decoration-line decoration-2 underline-offset-[6px] hover:decoration-lime",
 };
 
 const sizes: Record<Size, string> = {
   sm: "h-9 px-4 text-sm",
-  md: "h-11 px-6 text-sm",
-  lg: "h-14 px-8 text-base",
+  md: "h-11 px-5 text-[0.95rem]",
+  lg: "h-14 px-7 text-base",
 };
 
-type CommonProps = {
+type Common = {
   variant?: Variant;
   size?: Size;
   className?: string;
   children: ReactNode;
+  /** show a trailing arrow that nudges on hover */
+  arrow?: boolean;
 };
+type AsLink = Common & { href: string } & Omit<ComponentProps<typeof Link>, "href" | "className">;
+type AsButton = Common & { href?: undefined } & Omit<ComponentProps<"button">, "className">;
 
-type ButtonAsLink = CommonProps & { href: string } & Omit<
-    ComponentProps<typeof Link>,
-    "href" | "className"
-  >;
-type ButtonAsButton = CommonProps & { href?: undefined } & Omit<
-    ComponentProps<"button">,
-    "className"
-  >;
-
-export default function Button(props: ButtonAsLink | ButtonAsButton) {
-  const { variant = "primary", size = "md", className, children } = props;
-  const classes = cn(base, variants[variant], sizes[size], className);
+export default function Button(props: AsLink | AsButton) {
+  const { variant = "primary", size = "md", className, children, arrow } = props;
+  const isLink = variant === "link";
+  const classes = cn(base, isLink ? "" : sizes[size], variants[variant], className);
+  const inner = (
+    <>
+      {children}
+      {arrow && (
+        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+      )}
+    </>
+  );
 
   if (props.href !== undefined) {
-    const { href, variant: _v, size: _s, className: _c, ...rest } = props;
+    const { href, variant: _v, size: _s, className: _c, arrow: _a, children: _ch, ...rest } = props;
     const external = /^(https?:|tel:|sms:|mailto:)/.test(href);
     if (external) {
       return (
         <a href={href} className={classes} {...(rest as ComponentProps<"a">)}>
-          {children}
+          {inner}
         </a>
       );
     }
     return (
       <Link href={href} className={classes} {...rest}>
-        {children}
+        {inner}
       </Link>
     );
   }
-
-  const { variant: _v, size: _s, className: _c, href: _h, ...rest } = props;
+  const { variant: _v, size: _s, className: _c, arrow: _a, children: _ch, href: _h, ...rest } = props;
   return (
     <button className={classes} {...rest}>
-      {children}
+      {inner}
     </button>
   );
 }

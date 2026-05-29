@@ -8,6 +8,7 @@ import { contact, roiDefaults } from "@/lib/config";
 import Button from "@/components/ui/Button";
 import Section from "@/components/ui/Section";
 import Reveal from "@/components/ui/Reveal";
+import Pill from "@/components/ui/Pill";
 
 /* ─── helpers ─────────────────────────────────────────────────────────────── */
 
@@ -74,18 +75,16 @@ function Slider({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate">{label}</span>
-        <span className="font-display text-lg font-semibold text-gradient">
-          {format(value)}
-        </span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="mono-label">{label}</span>
+        <Pill tone="mint" mono>{format(value)}</Pill>
       </div>
       <div className="relative">
         {/* track background */}
-        <div className="relative h-2 rounded-full bg-white/10 overflow-hidden">
+        <div className="relative h-2 rounded-full bg-line overflow-hidden">
           {/* filled portion */}
           <div
-            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-cyan via-accent to-accent-2 transition-all duration-100"
+            className="absolute inset-y-0 left-0 rounded-full bg-lime transition-all duration-100"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -98,14 +97,15 @@ function Slider({
           onChange={(e) => onChange(Number(e.target.value))}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           aria-label={label}
+          style={{ accentColor: "var(--color-lime)" }}
         />
         {/* thumb */}
         <div
-          className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-5 rounded-full bg-gradient-to-br from-cyan to-accent shadow-[0_0_12px_var(--color-accent)] ring-2 ring-accent/30 transition-all duration-100"
+          className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-5 rounded-full bg-lime shadow-[0_2px_10px_rgba(124,223,19,0.5)] ring-2 ring-lime/40 transition-all duration-100"
           style={{ left: `${pct}%` }}
         />
       </div>
-      <div className="flex justify-between text-xs text-slate/50">
+      <div className="flex justify-between font-mono text-[0.7rem] uppercase tracking-wider text-sage">
         <span>{format(min)}</span>
         <span>{format(max)}</span>
       </div>
@@ -121,24 +121,27 @@ function BigStat({
   prefix = "",
   suffix = "",
   dim = false,
+  delta,
 }: {
   label: string;
   value: number;
   prefix?: string;
   suffix?: string;
   dim?: boolean;
+  delta?: string;
 }) {
   const animVal = useAnimatedValue(value);
   return (
-    <div className={cn("space-y-1", dim && "opacity-60")}>
-      <p className="text-xs font-medium uppercase tracking-widest text-slate">
-        {label}
-      </p>
-      <p className="font-display text-3xl font-bold text-gradient leading-none">
+    <div className={cn("space-y-1.5", dim && "opacity-60")}>
+      <p className="mono-label">{label}</p>
+      <p className="font-display text-3xl font-bold text-ink leading-none">
         {prefix}
         {animVal.toLocaleString()}
         {suffix}
       </p>
+      {delta && (
+        <Pill tone="mint" mono>{delta}</Pill>
+      )}
     </div>
   );
 }
@@ -147,25 +150,28 @@ function BigUsdStat({
   label,
   value,
   large = false,
+  delta,
 }: {
   label: string;
   value: number;
   large?: boolean;
+  delta?: string;
 }) {
   const animVal = useAnimatedValue(value);
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-widest text-slate">
-        {label}
-      </p>
+    <div className="space-y-1.5">
+      <p className="mono-label">{label}</p>
       <p
         className={cn(
-          "font-display font-bold text-gradient leading-none",
+          "font-display font-bold text-ink leading-none",
           large ? "text-5xl md:text-6xl" : "text-3xl"
         )}
       >
         {usd(animVal)}
       </p>
+      {delta && (
+        <Pill tone="mint" mono>{delta}</Pill>
+      )}
     </div>
   );
 }
@@ -188,11 +194,12 @@ export default function ROICalculator() {
   return (
     <Section
       id="roi-calculator"
-      eyebrow="ROI Calculator"
+      index="03"
+      label="ROI CALCULATOR"
       title={
         <>
           See exactly how much{" "}
-          <span className="text-gradient">you&apos;re losing</span>
+          <em className="font-serif not-italic text-lime-ink">you&apos;re losing</em>
         </>
       }
       intro="Adjust the sliders to match your practice. Reva turns missed calls into booked appointments — the numbers update live."
@@ -200,15 +207,25 @@ export default function ROICalculator() {
       <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* ── Left: sliders ─────────────────────────────────────────── */}
         <Reveal>
-          <div className="glass rounded-3xl p-8 space-y-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-cyan/20 to-accent/20 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-cyan" />
+          <div className="card p-8 space-y-8 dotted-tight">
+            {/* Panel header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-mint flex items-center justify-center border border-lime/30">
+                  <Phone className="h-4 w-4 text-lime-ink" />
+                </div>
+                <h3 className="font-display text-base font-semibold text-ink uppercase tracking-wide">
+                  Your Practice Numbers
+                </h3>
               </div>
-              <h3 className="font-display text-lg font-semibold text-paper">
-                Your practice numbers
-              </h3>
+              {/* LIVE indicator */}
+              <span className="flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-widest text-lime-ink">
+                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot" />
+                Live
+              </span>
             </div>
+
+            <div className="h-px bg-line-soft" />
 
             <Slider
               label="Missed calls per month"
@@ -241,77 +258,81 @@ export default function ROICalculator() {
             />
 
             {/* quick reference */}
-            <p className="text-xs text-slate/60 leading-relaxed pt-2 border-t border-white/5">
-              Industry avg: 5–15 missed calls/month · 30–40% conversion rate ·{" "}
-              {usd(roiDefaults.avgPatientValue)} avg patient value
-            </p>
+            <div className="pt-4 border-t border-line-soft">
+              <p className="mono-label mb-2">Industry averages</p>
+              <p className="text-xs text-muted leading-relaxed">
+                5–15 missed calls/month · 30–40% conversion rate ·{" "}
+                {usd(roiDefaults.avgPatientValue)} avg patient value
+              </p>
+            </div>
           </div>
         </Reveal>
 
         {/* ── Right: results ────────────────────────────────────────── */}
         <Reveal delay={0.12}>
-          <div className="relative rounded-3xl overflow-hidden">
-            {/* gradient glow backdrop */}
-            <div className="absolute inset-0 aurora opacity-30 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-cyan/5 pointer-events-none" />
-            <div className="glass relative rounded-3xl p-8 space-y-6">
-              {/* headline: yearly loss */}
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-widest text-slate">
+          <div className="rounded-3xl overflow-hidden border border-forest/20">
+            {/* Dark forest header with yearly loss */}
+            <div className="relative bg-forest grain px-8 pt-8 pb-7">
+              <div className="flex items-center justify-between mb-4">
+                <p className="mono-label text-sage/80">
                   Revenue you&apos;re losing every year
                 </p>
-                <YearlyLostNumber value={roi.lostYearly} />
+                <Pill tone="solid" mono>
+                  <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot inline-block" />
+                  Live calc
+                </Pill>
               </div>
+              <YearlyLostNumber value={roi.lostYearly} />
+              <p className="mt-2 text-sm text-sage/60">
+                Based on {missedCalls} missed calls/mo at {conversionPct}% conversion
+              </p>
+            </div>
 
-              <div className="h-px bg-white/8" />
-
-              {/* grid of stats */}
+            {/* Stats grid on white */}
+            <div className="bg-surface px-8 py-7 space-y-6">
+              {/* 2×2 grid */}
               <div className="grid grid-cols-2 gap-6">
-                <BigUsdStat label="Lost per month" value={roi.lostMonthly} />
+                <BigUsdStat
+                  label="Lost per month"
+                  value={roi.lostMonthly}
+                  delta="↓ monthly gap"
+                />
                 <BigUsdStat
                   label="Reva recovers / mo"
                   value={roi.recoveredMonthly}
+                  delta="↑ 90% recovery"
                 />
                 <BigUsdStat
                   label="Net gain after Reva"
                   value={roi.netMonthly}
+                  delta="after $499/mo"
                 />
-                <div className="space-y-1">
-                  <p className="text-xs font-medium uppercase tracking-widest text-slate">
-                    Return on investment
-                  </p>
-                  <p className="font-display text-3xl font-bold text-gradient leading-none">
+                <div className="space-y-1.5">
+                  <p className="mono-label">Return on investment</p>
+                  <p className="font-display text-3xl font-bold text-ink leading-none">
                     {Math.round(roiMultipleDisplay)}×
                   </p>
+                  <Pill tone="mint" mono>62× return</Pill>
                 </div>
               </div>
 
-              <div className="h-px bg-white/8" />
+              <div className="h-px bg-line-soft" />
 
-              {/* vs receptionist */}
-              <div className="flex items-center justify-between gap-4 rounded-2xl bg-white/5 px-5 py-4">
+              {/* Comparison strip */}
+              <div className="flex items-center justify-between gap-4 rounded-2xl bg-bg-soft border border-line px-5 py-4">
                 <div className="space-y-0.5">
-                  <p className="text-xs text-slate/70 uppercase tracking-wider">
-                    vs. a front-desk receptionist
-                  </p>
-                  <p className="font-display font-semibold text-paper">
+                  <p className="mono-label">Front-desk receptionist</p>
+                  <p className="font-display font-semibold text-ink text-lg">
                     {usd(roiDefaults.receptionistMonthlyCost)}
-                    <span className="font-normal text-slate text-sm">
-                      {" "}
-                      / mo
-                    </span>
+                    <span className="font-normal text-muted text-sm"> / mo</span>
                   </p>
                 </div>
+                <div className="h-8 w-px bg-line" />
                 <div className="text-right space-y-0.5">
-                  <p className="text-xs text-slate/70 uppercase tracking-wider">
-                    Reva costs
-                  </p>
-                  <p className="font-display font-semibold text-cyan">
+                  <p className="mono-label">Reva costs</p>
+                  <p className="font-display font-semibold text-lime-ink text-lg">
                     {usd(roiDefaults.revaMonthlyPrice)}
-                    <span className="font-normal text-slate text-sm">
-                      {" "}
-                      / mo
-                    </span>
+                    <span className="font-normal text-muted text-sm"> / mo</span>
                   </p>
                 </div>
               </div>
@@ -321,10 +342,13 @@ export default function ROICalculator() {
                 href={contact.telLink}
                 size="lg"
                 className="w-full"
+                arrow
               >
-                <Phone className="h-4 w-4" />
                 Get my exact numbers — talk to {contact.salesName}
               </Button>
+              <p className="text-center mono-label text-sage/70">
+                Free · No commitment · 15-min call
+              </p>
             </div>
           </div>
         </Reveal>
@@ -338,9 +362,9 @@ export default function ROICalculator() {
 function YearlyLostNumber({ value }: { value: number }) {
   const animVal = useAnimatedValue(value, 0.7);
   return (
-    <p className="font-display text-6xl md:text-7xl font-bold text-gradient leading-none">
-      {usd(animVal)}
-      <span className="text-2xl text-slate/60 font-normal ml-2">/yr</span>
+    <p className="font-display text-6xl md:text-7xl font-bold text-white leading-none">
+      <span className="text-lime">{usd(animVal)}</span>
+      <span className="text-2xl text-sage/60 font-normal ml-2">/yr</span>
     </p>
   );
 }

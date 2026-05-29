@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import Section from "@/components/ui/Section";
 import Reveal from "@/components/ui/Reveal";
 import Button from "@/components/ui/Button";
+import Pill from "@/components/ui/Pill";
+import WaveformPrimitive from "@/components/ui/Waveform";
 
 // ── Waveform bar heights (32 bars) — generated once, never changes ──────────
 const BAR_HEIGHTS = [
@@ -40,115 +42,11 @@ const BAR_PLAY_SCALES = BAR_HEIGHTS.map((_, i) => {
   return [1, 0.4 + seed1 * 0.8, 0.6 + seed2 * 0.6, 1] as number[];
 });
 
-// ── Accent → CSS classes mapping ─────────────────────────────────────────────
-const ACCENT_CONFIG = {
-  cyan: {
-    gradient: "from-cyan to-accent",
-    glow: "shadow-[0_8px_32px_-8px_rgba(34,211,238,0.55)]",
-    ring: "ring-cyan/40",
-    bar: "bg-cyan",
-    barActive: "bg-gradient-to-t from-cyan to-accent",
-    badge: "border-cyan/30 text-cyan bg-cyan/10",
-    progress: "from-cyan to-accent",
-  },
-  violet: {
-    gradient: "from-accent to-accent-2",
-    glow: "shadow-[0_8px_32px_-8px_rgba(139,92,246,0.55)]",
-    ring: "ring-accent-2/40",
-    bar: "bg-accent-2",
-    barActive: "bg-gradient-to-t from-accent to-accent-2",
-    badge: "border-accent-2/30 text-accent-2 bg-accent-2/10",
-    progress: "from-accent to-accent-2",
-  },
-  blue: {
-    gradient: "from-accent via-accent-2 to-cyan",
-    glow: "shadow-[0_8px_32px_-8px_rgba(99,102,241,0.55)]",
-    ring: "ring-accent/40",
-    bar: "bg-accent",
-    barActive: "bg-gradient-to-t from-accent via-accent-2 to-cyan",
-    badge: "border-accent/30 text-accent bg-accent/10",
-    progress: "from-accent via-accent-2 to-cyan",
-  },
-} as const;
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-// ── Waveform component ────────────────────────────────────────────────────────
-function Waveform({
-  isPlaying,
-  progress,
-  accent,
-  isComing,
-}: {
-  isPlaying: boolean;
-  progress: number; // 0–1
-  accent: keyof typeof ACCENT_CONFIG;
-  isComing: boolean;
-}) {
-  const cfg = ACCENT_CONFIG[accent];
-  const playedBars = Math.floor(progress * BAR_HEIGHTS.length);
-
-  return (
-    <div className="flex items-center justify-center gap-[3px] h-12 w-full">
-      {BAR_HEIGHTS.map((baseH, i) => {
-        const isPast = i < playedBars;
-        const isCurrent = i === playedBars;
-
-        return (
-          <motion.span
-            key={i}
-            className={cn(
-              "rounded-full w-[3px] origin-center",
-              isComing
-                ? "bg-white/15"
-                : isPast
-                ? cfg.barActive
-                : cfg.bar + " opacity-40",
-              isCurrent && !isComing && "opacity-90"
-            )}
-            style={{
-              height: `${baseH * 100}%`,
-            }}
-            animate={
-              isComing
-                ? {
-                    scaleY: [1, 1.15, 0.9, 1.05, 1],
-                    opacity: [0.12, 0.2, 0.12, 0.18, 0.12],
-                  }
-                : isPlaying
-                ? {
-                    scaleY: BAR_PLAY_SCALES[i],
-                  }
-                : { scaleY: 1 }
-            }
-            transition={
-              isComing
-                ? {
-                    duration: 2.8,
-                    delay: (i % 8) * 0.18,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }
-                : isPlaying
-                ? {
-                    duration: 0.45 + (i % 5) * 0.07,
-                    delay: (i % 6) * 0.04,
-                    repeat: Infinity,
-                    repeatType: "mirror",
-                    ease: "easeInOut",
-                  }
-                : { duration: 0.3 }
-            }
-          />
-        );
-      })}
-    </div>
-  );
 }
 
 // ── Individual call-player card ───────────────────────────────────────────────
@@ -168,7 +66,6 @@ function CallCard({
   const [duration, setDuration] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  const cfg = ACCENT_CONFIG[demo.accent];
   const hasAudio = demo.audioSrc !== "";
   const progress = duration > 0 ? currentTime / duration : 0;
 
@@ -243,101 +140,111 @@ function CallCard({
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "glass rounded-3xl p-6 flex flex-col gap-5 relative overflow-hidden",
-        "transition-all duration-500 group",
-        isPlaying && "glow"
+        "card rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden",
+        "border border-line transition-all duration-300 group",
+        "hover:-translate-y-1 hover:shadow-[0_12px_40px_-12px_rgba(22,58,34,0.14)]",
+        isPlaying && "border-forest/40 shadow-[0_8px_32px_-8px_rgba(22,58,34,0.18)]"
       )}
     >
-      {/* Subtle ambient glow behind card when playing */}
+      {/* Subtle mint ambient when playing */}
       <AnimatePresence>
         {isPlaying && (
           <motion.div
-            className={cn(
-              "absolute inset-0 -z-10 rounded-3xl opacity-20",
-              `bg-gradient-to-br ${cfg.gradient}`
-            )}
+            className="absolute inset-0 -z-10 rounded-2xl bg-mint opacity-0"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.18 }}
+            animate={{ opacity: 0.35 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.5 }}
           />
         )}
       </AnimatePresence>
 
-      {/* ── Top row: avatar + clinic info ────────────────────────────── */}
+      {/* ── Top row: avatar + clinic info + status pill ───────────────── */}
       <div className="flex items-center gap-3">
-        {/* Circular gradient avatar */}
+        {/* Forest-green round avatar with lime icon */}
         <div className="relative flex-shrink-0">
           <div
             className={cn(
-              "h-12 w-12 rounded-full grid place-items-center",
-              `bg-gradient-to-br ${cfg.gradient}`,
-              cfg.glow
+              "h-11 w-11 rounded-full grid place-items-center bg-forest",
+              "shadow-[0_4px_16px_-4px_rgba(22,58,34,0.40)]"
             )}
           >
             {isPlaying ? (
-              <Mic className="h-5 w-5 text-white" />
+              <Mic className="h-4.5 w-4.5 text-lime" />
             ) : (
-              <Phone className="h-5 w-5 text-white" />
+              <Phone className="h-4.5 w-4.5 text-lime" />
             )}
           </div>
           {/* Pulse ring when playing */}
           {isPlaying && (
-            <span
-              className={cn(
-                "absolute inset-0 rounded-full ring-2",
-                cfg.ring,
-                "animate-pulse-ring"
-              )}
-            />
+            <span className="absolute inset-0 rounded-full ring-2 ring-forest/30 animate-pulse" />
           )}
         </div>
 
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-paper leading-snug truncate">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-ink leading-snug truncate">
             {demo.clinic}
           </p>
-          <p className="text-xs text-slate mt-0.5">
-            Incoming call · {demo.duration}
+          <p className="font-mono text-[10px] uppercase tracking-widest text-sage mt-0.5">
+            INCOMING · {demo.duration}
           </p>
         </div>
 
-        {/* "Live" badge when playing */}
-        <AnimatePresence>
-          {isPlaying && (
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
+        {/* Status pill */}
+        <AnimatePresence mode="wait">
+          {isPlaying ? (
+            <motion.div
+              key="live"
+              initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="ml-auto flex items-center gap-1.5 rounded-full border border-cyan/30 bg-cyan/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan"
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.2 }}
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan animate-pulse" />
-              Live
-            </motion.span>
+              <Pill tone="mint" mono>
+                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot inline-block" />
+                LIVE
+              </Pill>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="ready"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Pill tone="outline" mono>READY</Pill>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* ── Title & description ───────────────────────────────────────── */}
       <div>
-        <h3 className="font-display text-base font-semibold text-paper leading-snug">
+        <h3 className="font-display text-base font-bold text-ink leading-snug">
           {demo.title}
         </h3>
-        <p className="mt-1.5 text-sm text-slate leading-relaxed">
+        <p className="mt-1.5 text-sm text-muted leading-relaxed">
           {demo.description}
         </p>
       </div>
 
-      {/* ── Waveform ──────────────────────────────────────────────────── */}
-      <Waveform
-        isPlaying={isPlaying}
-        progress={progress}
-        accent={demo.accent}
-        isComing={!hasAudio}
-      />
+      {/* ── Waveform — use the primitive, recolored to forest/lime ──────── */}
+      <div className="h-12 flex items-center">
+        <WaveformPrimitive
+          bars={32}
+          active={isPlaying && hasAudio}
+          className="w-full justify-center"
+          barClassName={cn(
+            isPlaying && hasAudio
+              ? "bg-lime"
+              : "bg-forest/30"
+          )}
+        />
+      </div>
 
       {/* ── Player controls ───────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2.5">
         {/* Progress bar */}
         <div
           role={hasAudio ? "slider" : undefined}
@@ -346,16 +253,13 @@ function CallCard({
           aria-valuemin={0}
           aria-valuemax={100}
           className={cn(
-            "h-1.5 w-full rounded-full bg-white/10 relative overflow-hidden",
+            "h-1 w-full rounded-full bg-line relative overflow-hidden",
             hasAudio ? "cursor-pointer" : "cursor-default"
           )}
           onClick={handleScrub}
         >
           <motion.div
-            className={cn(
-              "absolute inset-y-0 left-0 rounded-full bg-gradient-to-r",
-              cfg.progress
-            )}
+            className="absolute inset-y-0 left-0 rounded-full bg-lime"
             style={{ width: `${progress * 100}%` }}
             transition={{ duration: 0.1 }}
           />
@@ -363,9 +267,14 @@ function CallCard({
 
         {/* Time + play button row */}
         <div className="flex items-center gap-3">
-          {/* Time */}
-          <span className="text-xs tabular-nums text-slate w-20">
+          {/* Timecode */}
+          <span className="font-mono text-[10px] uppercase tracking-wider text-sage tabular-nums">
             {hasAudio ? `${displayCurrent} / ${displayDuration}` : `0:00 / ${demo.duration}`}
+          </span>
+
+          {/* Mono data tag */}
+          <span className="font-mono text-[10px] uppercase tracking-wider text-sage/60">
+            status = {hasAudio ? "ready" : "pending"}
           </span>
 
           {/* Play / pause button */}
@@ -374,15 +283,16 @@ function CallCard({
             disabled={!hasAudio || isLoading}
             aria-label={isPlaying ? "Pause" : "Play"}
             className={cn(
-              "ml-auto relative h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0",
+              "ml-auto relative h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0",
               "transition-all duration-300",
               hasAudio
                 ? cn(
-                    `bg-gradient-to-br ${cfg.gradient}`,
-                    cfg.glow,
-                    "hover:scale-105 active:scale-95 text-white"
+                    "bg-forest text-white",
+                    "shadow-[0_4px_16px_-4px_rgba(22,58,34,0.50)]",
+                    "hover:bg-lime hover:text-forest hover:shadow-[0_4px_16px_-4px_rgba(124,223,19,0.60)]",
+                    "active:scale-95"
                   )
-                : "bg-white/8 text-white/25 cursor-not-allowed"
+                : "bg-line text-muted cursor-not-allowed"
             )}
           >
             {isLoading ? (
@@ -400,23 +310,31 @@ function CallCard({
         </div>
       </div>
 
+      {/* ── Bottom detail row ─────────────────────────────────────────── */}
+      <div className="flex items-center justify-between pt-2 border-t border-line-soft">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-sage/50">
+          Reva AI
+        </span>
+        <Pill tone="gray" mono>
+          {brand.agentName}
+        </Pill>
+      </div>
+
       {/* ── "Demo coming soon" overlay ────────────────────────────────── */}
       {!hasAudio && (
-        <div className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-2 backdrop-blur-[1px]">
+        <div className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center gap-2.5 bg-surface/80 backdrop-blur-[2px]">
           {/* Badge */}
           <motion.div
             animate={{ y: [0, -3, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            className={cn(
-              "flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold",
-              cfg.badge
-            )}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-            Demo coming soon
+            <Pill tone="outline" mono>
+              <span className="h-1.5 w-1.5 rounded-full bg-sage/60 inline-block" />
+              DEMO COMING SOON
+            </Pill>
           </motion.div>
-          <p className="text-[11px] text-slate/60 mt-1">
-            Recording will appear here.
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted/50">
+            Recording will appear here
           </p>
         </div>
       )}
@@ -470,17 +388,18 @@ export default function VoiceDemos() {
   return (
     <Section
       id="demos"
-      eyebrow="Live Demos"
+      index="05"
+      label="LIVE DEMOS"
       title={
         <>
-          Hear <span className="text-gradient">{brand.agentName}</span> on a
-          real call
+          Hear <span className="text-lime-ink">{brand.agentName}</span> on a
+          real call.
         </>
       }
       intro={`Real conversations between ${brand.agentName} and patients — booking appointments, handling insurance questions, and triaging emergencies. Press play.`}
     >
       {/* Card grid */}
-      <div className="mt-14 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="mt-14 grid grid-cols-1 gap-5 lg:grid-cols-3">
         {voiceDemos.map((demo) => (
           <CallCard
             key={demo.id}
@@ -495,11 +414,11 @@ export default function VoiceDemos() {
       {/* CTA row */}
       <Reveal delay={0.15}>
         <div className="mt-14 flex flex-col items-center gap-4 text-center">
-          <p className="text-slate text-sm">
+          <p className="text-muted text-sm">
             Want to hear {brand.agentName} handle{" "}
-            <span className="text-paper font-medium">YOUR</span> front desk?
+            <span className="text-ink font-semibold">YOUR</span> front desk?
           </p>
-          <Button href={contact.telLink} variant="outline" size="lg">
+          <Button href={contact.telLink} variant="primary" size="lg" arrow>
             <Phone className="h-4 w-4" />
             Call {contact.salesName} for a custom demo
           </Button>

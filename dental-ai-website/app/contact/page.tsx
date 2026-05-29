@@ -4,11 +4,13 @@ import {
   MessageSquare,
   MessageCircle,
   Mail,
-  Zap,
+  ChevronRight,
 } from "lucide-react";
 import Reveal from "@/components/ui/Reveal";
+import Pill from "@/components/ui/Pill";
+import Button from "@/components/ui/Button";
 import ContactForm from "@/components/sections/ContactForm";
-import { contact } from "@/lib/config";
+import { contact, brand } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -19,9 +21,9 @@ type ContactCardProps = {
   icon: React.ReactNode;
   label: string;
   description: string;
-  action: string;
+  detail: string;
   href: string;
-  highlight?: boolean;
+  tag?: string;
   delay: number;
 };
 
@@ -29,69 +31,42 @@ function ContactCard({
   icon,
   label,
   description,
-  action,
+  detail,
   href,
-  highlight = false,
+  tag,
   delay,
 }: ContactCardProps) {
   return (
     <Reveal delay={delay}>
       <a
         href={href}
-        className={`group flex items-start gap-5 glass rounded-2xl p-6 border transition-all duration-300 ${
-          highlight
-            ? "border-cyan/30 hover:border-cyan/60 hover:shadow-[0_0_30px_-10px_rgba(34,211,238,0.4)]"
-            : "border-white/10 hover:border-white/25"
-        }`}
+        className="group card flex items-start gap-5 p-6 hover:-translate-y-0.5 transition-all duration-200 hover:shadow-md block"
       >
-        {/* Icon bubble */}
-        <div
-          className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-colors duration-300 ${
-            highlight
-              ? "bg-cyan/15 text-cyan group-hover:bg-cyan/25"
-              : "bg-white/8 text-slate group-hover:text-paper group-hover:bg-white/12"
-          }`}
-        >
+        {/* Icon tile */}
+        <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-forest flex items-center justify-center text-white shadow-sm group-hover:bg-forest-deep transition-colors duration-200">
           {icon}
         </div>
 
         {/* Text */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-display font-semibold text-paper text-sm">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-display font-bold text-ink text-base">
               {label}
             </span>
-            {highlight && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-cyan bg-cyan/10 rounded-full px-2 py-0.5 border border-cyan/20">
-                <Zap size={9} />
-                Fastest
-              </span>
+            {tag && (
+              <Pill tone="mint" mono>{tag}</Pill>
             )}
           </div>
-          <p className="text-slate text-xs leading-relaxed mb-2">
+          <p className="text-muted text-xs leading-relaxed mb-2">
             {description}
           </p>
-          <span
-            className={`text-sm font-medium transition-colors duration-200 ${
-              highlight
-                ? "text-cyan group-hover:text-white"
-                : "text-paper/70 group-hover:text-paper"
-            }`}
-          >
-            {action}
+          <span className="font-mono text-[0.72rem] uppercase tracking-widest text-lime-ink">
+            {detail}
           </span>
         </div>
 
-        {/* Chevron */}
-        <svg
-          className="flex-shrink-0 w-4 h-4 text-slate/40 group-hover:text-slate/80 transition-colors mt-0.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+        {/* Arrow */}
+        <ChevronRight className="flex-shrink-0 w-4 h-4 text-sage group-hover:text-ink group-hover:translate-x-0.5 transition-all mt-0.5" />
       </a>
     </Reveal>
   );
@@ -102,30 +77,30 @@ export default function ContactPage() {
   const contactOptions: ContactCardProps[] = [
     {
       icon: <Phone size={20} />,
-      label: "Call Aiden",
+      label: `Call ${contact.salesName}`,
       description:
-        "The fastest way to get answers, see a live demo, or start your onboarding. Aiden picks up.",
-      action: contact.phoneDisplay,
+        "The fastest way to get answers, see a live demo, or kick off your onboarding. Aiden picks up every time — no assistant, no queue.",
+      detail: contact.phoneDisplay,
       href: contact.telLink,
-      highlight: true,
+      tag: "FASTEST",
       delay: 0.08,
     },
     {
       icon: <MessageSquare size={20} />,
-      label: "Text Aiden",
+      label: `Text ${contact.salesName}`,
       description:
-        "Prefer to text? Send Aiden a message and he'll reply within the hour.",
-      action: `Text ${contact.phoneDisplay}`,
+        "Prefer async? Send Aiden a message and he'll reply within the hour. Great for sharing details or asking quick questions.",
+      detail: `Text ${contact.phoneDisplay}`,
       href: contact.smsLink,
-      highlight: true,
+      tag: "< 1 HR REPLY",
       delay: 0.14,
     },
     {
       icon: <MessageCircle size={20} />,
       label: "WhatsApp",
       description:
-        "Chat on WhatsApp — great for voice notes, quick questions, or international contacts.",
-      action: "Open WhatsApp chat",
+        "Chat on WhatsApp — perfect for voice notes, screenshots, or international contacts who prefer it.",
+      detail: "Open WhatsApp chat",
       href: contact.whatsappLink,
       delay: 0.2,
     },
@@ -133,40 +108,46 @@ export default function ContactPage() {
       icon: <Mail size={20} />,
       label: "Email us",
       description:
-        "For longer inquiries, partnership discussions, or if you prefer email.",
-      action: contact.email,
+        "For longer inquiries, partnership discussions, or if you just prefer email. We respond within one business day.",
+      detail: contact.email,
       href: `mailto:${contact.email}`,
       delay: 0.26,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-ink pt-32 pb-24 md:pb-32 relative overflow-hidden">
-      {/* Background */}
-      <div className="aurora absolute inset-0 opacity-40" aria-hidden="true" />
-      <div className="bg-grid absolute inset-0 opacity-20" aria-hidden="true" />
+    <div className="min-h-screen bg-bg dotted pt-32 pb-24 md:pb-32 relative overflow-hidden">
+      {/* Soft radial wash */}
+      <div className="wash absolute inset-0 pointer-events-none" aria-hidden="true" />
 
       <div className="container-x relative z-10">
         {/* Page header */}
         <div className="max-w-2xl mb-16">
           <Reveal>
-            <span className="inline-flex items-center gap-2 text-sm font-medium text-cyan mb-6">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan" />
-              Get in touch
-            </span>
+            <div className="mb-5 flex items-center gap-3">
+              <span className="mono-label">
+                Talk to {contact.salesName}
+              </span>
+              <span className="h-px flex-1 border-t border-dashed border-line max-w-[80px]" />
+              <Pill tone="mint" mono check>Response &lt; 1 hr</Pill>
+            </div>
           </Reveal>
+
           <Reveal delay={0.06}>
-            <h1 className="font-display text-5xl md:text-6xl font-semibold tracking-tight text-paper text-balance leading-[1.05] mb-6">
+            <h1 className="font-display text-5xl md:text-6xl font-bold tracking-[-0.02em] text-ink text-balance leading-[0.98] mb-6">
               Let&apos;s get{" "}
-              <span className="text-gradient">Reva answering your calls.</span>
+              <span className="text-lime-ink italic font-serif">
+                Reva answering your calls.
+              </span>
             </h1>
           </Reveal>
+
           <Reveal delay={0.12}>
-            <p className="text-slate text-lg leading-relaxed">
+            <p className="text-muted text-lg leading-relaxed">
               The fastest way to get started is a quick call or text with{" "}
-              {contact.salesName}. He&apos;ll walk you through exactly how many calls
-              you&apos;re missing and have Reva live within days — no long contracts,
-              no technical lift.
+              {contact.salesName}. He&apos;ll walk you through exactly how many
+              calls you&apos;re missing and have {brand.agentName} live within
+              days — no long contracts, no technical lift.
             </p>
           </Reveal>
         </div>
@@ -174,15 +155,15 @@ export default function ContactPage() {
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
           {/* ── LEFT — direct contact options ─────────────── */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5">
             <Reveal>
-              <div className="mb-2">
-                <h2 className="font-display text-xl font-semibold text-paper mb-1">
-                  Talk to {contact.salesName}
-                </h2>
-                <p className="text-slate text-sm leading-relaxed">
-                  {contact.salesName} is {contact.salesRole.toLowerCase()} — call or text
-                  him directly for the fastest response.
+              <div className="mb-1">
+                <p className="mono-label mb-1">
+                  Talk directly to {contact.salesName}
+                </p>
+                <p className="text-muted text-sm leading-relaxed">
+                  {contact.salesName} is {contact.salesRole.toLowerCase()} and
+                  your single point of contact — from demo to onboarding.
                 </p>
               </div>
             </Reveal>
@@ -193,29 +174,62 @@ export default function ContactPage() {
               ))}
             </div>
 
-            {/* Availability note */}
+            {/* Availability line with pulsing lime dot */}
             <Reveal delay={0.32}>
-              <div className="glass rounded-2xl p-5 border border-white/8 flex items-start gap-4">
-                <span className="relative flex-shrink-0 mt-0.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan block" />
-                  <span className="animate-pulse-ring absolute inset-0 rounded-full border border-cyan/50" />
+              <div className="card p-5 flex items-start gap-4">
+                <span className="relative flex-shrink-0 mt-1">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full bg-lime block animate-pulse-dot"
+                    aria-label="Online"
+                  />
                 </span>
                 <div>
-                  <p className="text-paper text-sm font-medium mb-0.5">
+                  <p className="text-ink text-sm font-semibold mb-0.5">
                     Typical response time: under 1 hour
                   </p>
-                  <p className="text-slate text-xs leading-relaxed">
+                  <p className="text-muted text-xs leading-relaxed">
                     {contact.salesName} is available Mon – Sat, 8 am – 8 pm PT.
                     For urgent inquiries, call directly — he picks up.
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Pill tone="mint" mono>Mon – Sat</Pill>
+                    <Pill tone="mint" mono>8 am – 8 pm PT</Pill>
+                    <Pill tone="gray" mono>Calls answered directly</Pill>
+                  </div>
                 </div>
               </div>
+            </Reveal>
+
+            {/* CTA quick-action */}
+            <Reveal delay={0.38}>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button href={contact.telLink} size="md" arrow>
+                  <Phone size={16} />
+                  Call {contact.salesName} now
+                </Button>
+                <Button href={contact.smsLink} variant="outline" size="md">
+                  <MessageSquare size={16} />
+                  Send a text
+                </Button>
+              </div>
+              <p className="mt-3 mono-label">
+                {contact.phoneDisplay}
+              </p>
             </Reveal>
           </div>
 
           {/* ── RIGHT — contact form ───────────────────────── */}
           <Reveal delay={0.1} y={32}>
-            <ContactForm />
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="mono-label mb-1">Or send us a message</p>
+                <p className="text-muted text-sm leading-relaxed">
+                  Prefer to write it out? Fill in the form and we&apos;ll get
+                  back to you within one business day.
+                </p>
+              </div>
+              <ContactForm />
+            </div>
           </Reveal>
         </div>
       </div>

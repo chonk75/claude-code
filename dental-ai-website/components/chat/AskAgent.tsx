@@ -73,12 +73,13 @@ export default function AskAgent() {
       {/* Floating launcher */}
       <motion.button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-5 right-5 z-50 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-cyan via-accent to-accent-2 text-white shadow-[0_16px_40px_-10px_var(--color-accent)]"
+        className="fixed bottom-5 right-5 z-50 grid h-14 w-14 place-items-center rounded-full bg-lime text-forest shadow-[0_16px_40px_-10px_rgba(124,223,19,0.7)]"
         whileHover={{ scale: 1.06 }}
         whileTap={{ scale: 0.95 }}
         aria-label="Ask Reva"
       >
-        <span className="absolute inset-0 -z-10 rounded-full bg-accent animate-pulse-ring" />
+        {/* pulsing ring */}
+        <span className="absolute inset-0 -z-10 rounded-full bg-lime animate-pulse-dot" />
         {open ? <X className="h-6 w-6" /> : <Sparkles className="h-6 w-6" />}
       </motion.button>
 
@@ -89,26 +90,33 @@ export default function AskAgent() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-24 right-5 z-50 flex h-[32rem] w-[min(92vw,24rem)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-ink-2/95 backdrop-blur-xl shadow-2xl"
+            className="fixed bottom-24 right-5 z-50 flex h-[32rem] w-[min(92vw,24rem)] flex-col overflow-hidden rounded-3xl border border-line bg-surface shadow-2xl"
           >
             {/* Header */}
-            <div className="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-accent/20 to-accent-2/20 px-4 py-3">
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-cyan to-accent-2 font-display font-bold text-white">
+            <div className="flex items-center gap-3 border-b border-line bg-forest px-4 py-3">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-lime font-display font-bold text-forest-deep text-base shrink-0">
                 {brand.agentName[0]}
               </span>
-              <div className="leading-tight">
-                <p className="font-display text-sm font-semibold">
+              <div className="leading-tight flex-1 min-w-0">
+                <p className="font-display text-sm font-semibold text-white">
                   Ask {brand.agentName}
                 </p>
-                <p className="flex items-center gap-1.5 text-xs text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <p className="flex items-center gap-1.5 text-xs text-sage/80">
+                  <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot shrink-0" />
                   Online · replies instantly
                 </p>
               </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="shrink-0 grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
             </div>
 
             {/* Messages */}
-            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
+            <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4 bg-bg-soft dotted-tight">
               {messages.map((m, i) => (
                 <div
                   key={i}
@@ -117,8 +125,8 @@ export default function AskAgent() {
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       m.role === "user"
-                        ? "rounded-br-sm bg-accent text-white"
-                        : "rounded-bl-sm bg-white/8 text-paper"
+                        ? "rounded-br-sm bg-forest text-white"
+                        : "rounded-bl-sm bg-surface border border-line text-ink shadow-sm"
                     }`}
                   >
                     {m.text}
@@ -127,11 +135,11 @@ export default function AskAgent() {
               ))}
               {busy && (
                 <div className="flex justify-start">
-                  <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-white/8 px-4 py-3">
+                  <div className="flex gap-1 rounded-2xl rounded-bl-sm bg-surface border border-line px-4 py-3 shadow-sm">
                     {[0, 1, 2].map((d) => (
                       <span
                         key={d}
-                        className="h-2 w-2 animate-bounce rounded-full bg-slate"
+                        className="h-2 w-2 animate-bounce rounded-full bg-sage"
                         style={{ animationDelay: `${d * 0.15}s` }}
                       />
                     ))}
@@ -145,7 +153,7 @@ export default function AskAgent() {
                     <button
                       key={s}
                       onClick={() => send(s)}
-                      className="rounded-full border border-white/15 px-3 py-1.5 text-xs text-paper/80 transition-colors hover:border-accent hover:text-white"
+                      className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink transition-colors hover:border-lime hover:text-lime-ink font-mono uppercase tracking-wider"
                     >
                       {s}
                     </button>
@@ -157,7 +165,7 @@ export default function AskAgent() {
             {/* Quick-call strip */}
             <a
               href={contact.telLink}
-              className="flex items-center justify-center gap-2 border-t border-white/10 bg-white/5 py-2 text-xs font-medium text-cyan hover:bg-white/10"
+              className="flex items-center justify-center gap-2 border-t border-line bg-mint py-2.5 text-xs font-mono uppercase tracking-wider text-lime-ink hover:bg-mint-2 transition-colors"
             >
               <Phone className="h-3.5 w-3.5" />
               Prefer a human? Call {contact.salesName} · {contact.phoneDisplay}
@@ -169,18 +177,18 @@ export default function AskAgent() {
                 e.preventDefault();
                 send(input);
               }}
-              className="flex items-center gap-2 border-t border-white/10 p-3"
+              className="flex items-center gap-2 border-t border-line bg-surface p-3"
             >
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={`Ask ${brand.agentName} anything…`}
-                className="flex-1 rounded-full bg-white/8 px-4 py-2.5 text-sm text-paper placeholder:text-slate focus:outline-none focus:ring-2 focus:ring-accent"
+                className="flex-1 rounded-full bg-bg-soft border border-line px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-lime focus:border-transparent transition-colors"
               />
               <button
                 type="submit"
                 disabled={busy || !input.trim()}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-white transition-opacity disabled:opacity-40"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-forest text-white transition-all hover:bg-forest-deep disabled:opacity-40"
                 aria-label="Send"
               >
                 <Send className="h-4 w-4" />

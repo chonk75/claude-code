@@ -8,6 +8,7 @@ import { Phone, Menu, X } from "lucide-react";
 import { brand, contact, navLinks } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import Button from "@/components/ui/Button";
+import Squiggle from "@/components/ui/Squiggle";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -15,7 +16,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -27,24 +28,19 @@ export default function Navbar() {
     <header className="fixed inset-x-0 top-0 z-50">
       <div
         className={cn(
-          "transition-all duration-500",
-          scrolled ? "py-2" : "py-4"
+          "border-b transition-all duration-300",
+          scrolled
+            ? "border-line bg-bg/85 backdrop-blur-xl"
+            : "border-transparent bg-bg/40 backdrop-blur-sm"
         )}
       >
-        <nav
-          className={cn(
-            "container-x flex items-center justify-between rounded-full transition-all duration-500",
-            scrolled && "glass !px-4 py-2 max-w-5xl"
-          )}
-        >
+        <nav className="container-x flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="group flex items-center gap-2.5">
-            <span className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan via-accent to-accent-2 text-white shadow-[0_8px_24px_-8px_var(--color-accent)]">
-              <span className="font-display text-lg font-bold">R</span>
-              <span className="absolute inset-0 rounded-xl ring-1 ring-white/20" />
-            </span>
-            <span className="font-display text-lg font-semibold tracking-tight">
-              {brand.name}
+          <Link href="/" className="flex items-center gap-2">
+            <Squiggle className="h-5 w-9 text-forest" strokeWidth={6} />
+            <span className="font-display text-2xl font-bold tracking-[-0.03em] text-ink">
+              {brand.name.replace(" AI", "")}
+              <span className="text-sage">.ai</span>
             </span>
           </Link>
 
@@ -52,22 +48,20 @@ export default function Navbar() {
           <div className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => {
               const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href);
+                link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
-                    "relative rounded-full px-4 py-2 text-sm transition-colors",
-                    active ? "text-white" : "text-paper/65 hover:text-white"
+                    "relative rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                    active ? "text-ink" : "text-muted hover:text-ink"
                   )}
                 >
                   {active && (
                     <motion.span
                       layoutId="nav-pill"
-                      className="absolute inset-0 -z-10 rounded-full bg-white/8"
+                      className="absolute inset-0 -z-10 rounded-lg bg-ink/[0.06]"
                       transition={{ type: "spring", stiffness: 400, damping: 32 }}
                     />
                   )}
@@ -77,9 +71,8 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* CTA — calls Aiden */}
           <div className="hidden md:block">
-            <Button href={contact.telLink} size="sm">
+            <Button href={contact.telLink} size="sm" arrow>
               <Phone className="h-4 w-4" />
               Talk to {contact.salesName}
             </Button>
@@ -87,7 +80,7 @@ export default function Navbar() {
 
           {/* Mobile toggle */}
           <button
-            className="grid h-10 w-10 place-items-center rounded-full glass md:hidden"
+            className="grid h-10 w-10 place-items-center rounded-lg border border-line bg-surface/60 md:hidden"
             onClick={() => setOpen((v) => !v)}
             aria-label="Toggle menu"
           >
@@ -96,26 +89,25 @@ export default function Navbar() {
         </nav>
       </div>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="container-x md:hidden"
+            exit={{ opacity: 0, y: -8 }}
+            className="border-b border-line bg-bg/95 backdrop-blur-xl md:hidden"
           >
-            <div className="glass mt-2 rounded-3xl p-4">
+            <div className="container-x py-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block rounded-2xl px-4 py-3 text-base text-paper/80 hover:bg-white/5 hover:text-white"
+                  className="block rounded-xl px-3 py-3 text-lg font-medium text-ink hover:bg-ink/[0.04]"
                 >
                   {link.label}
                 </Link>
               ))}
-              <Button href={contact.telLink} className="mt-2 w-full" size="md">
+              <Button href={contact.telLink} className="mt-3 w-full" size="md" arrow>
                 <Phone className="h-4 w-4" />
                 Talk to {contact.salesName} · {contact.phoneDisplay}
               </Button>

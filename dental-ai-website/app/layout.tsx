@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  Hanken_Grotesk,
+  JetBrains_Mono,
+  Instrument_Serif,
+} from "next/font/google";
 import "./globals.css";
 import { brand } from "@/lib/config";
 import SmoothScroll from "@/components/layout/SmoothScroll";
@@ -7,14 +12,25 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AskAgent from "@/components/chat/AskAgent";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
   display: "swap",
 });
-
-const inter = Inter({
-  variable: "--font-inter",
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken",
+  subsets: ["latin"],
+  display: "swap",
+});
+const jetbrains = JetBrains_Mono({
+  variable: "--font-jetbrains",
+  subsets: ["latin"],
+  display: "swap",
+});
+const instrument = Instrument_Serif({
+  variable: "--font-instrument",
+  weight: "400",
+  style: ["normal", "italic"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -34,20 +50,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} antialiased`}
+      className={`${bricolage.variable} ${hanken.variable} ${jetbrains.variable} ${instrument.variable} antialiased`}
     >
-      <body className="min-h-screen flex flex-col bg-ink text-paper">
+      <body className="min-h-screen flex flex-col bg-bg text-ink">
         <SmoothScroll />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
-        {/* Floating "Ask Reva" AI assistant — answers questions on any page */}
         <AskAgent />
       </body>
     </html>

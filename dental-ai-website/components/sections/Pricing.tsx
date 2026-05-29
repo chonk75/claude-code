@@ -1,104 +1,136 @@
-import { Check, Phone, Sparkles, Building2, Zap } from "lucide-react";
+import { Check, Phone, Building2, TrendingDown, ShieldCheck, Zap } from "lucide-react";
 import Section from "@/components/ui/Section";
 import Reveal from "@/components/ui/Reveal";
 import Button from "@/components/ui/Button";
+import Pill from "@/components/ui/Pill";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/utils";
 import { roiDefaults, contact } from "@/lib/config";
 
 /* ── Data ─────────────────────────────────────────────────────── */
 const doneForYouFeatures = [
-  "Unlimited inbound calls answered 24/7",
-  "Appointment booking inside your PMS",
-  "Insurance & FAQ handling — trained on your clinic",
-  "Web chat + SMS / WhatsApp agent included",
-  "White-glove onboarding & voice customisation",
-  "Live in days, not weeks",
-  "Monthly performance reports",
+  { text: "Unlimited inbound calls answered 24/7", note: "no call caps" },
+  { text: "Appointment booking inside your PMS", note: "direct integration" },
+  { text: "Insurance & FAQ handling — trained on your clinic", note: "custom KB" },
+  { text: "Web chat + SMS / WhatsApp agent included", note: "3 channels" },
+  { text: "White-glove onboarding & voice customisation", note: "done for you" },
+  { text: "Live in days, not weeks", note: "fast deploy" },
+  { text: "Monthly performance reports", note: "full visibility" },
 ];
 
 const customFeatures = [
-  "Everything in Done-For-You",
-  "Multi-location deployment",
-  "Custom voice & personality per location",
-  "Dedicated account manager",
-  "Priority support & SLA",
-  "Volume pricing available",
+  { text: "Everything in Done-For-You", note: "all features" },
+  { text: "Multi-location deployment", note: "unlimited sites" },
+  { text: "Custom voice & personality per location", note: "per-brand" },
+  { text: "Dedicated account manager", note: "named contact" },
+  { text: "Priority support & SLA", note: "guaranteed uptime" },
+  { text: "Volume pricing available", note: "custom quote" },
 ];
+
+const savings = roiDefaults.receptionistMonthlyCost - roiDefaults.revaMonthlyPrice;
+
+/* ── Savings contrast strip ───────────────────────────────────── */
+function SavingsStrip() {
+  return (
+    <div className="mt-2 rounded-xl border border-line bg-mint dotted-tight overflow-hidden">
+      <div className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+        <TrendingDown size={15} className="shrink-0 text-lime-ink" />
+        <p className="text-xs text-muted leading-snug flex-1">
+          A full-time receptionist costs{" "}
+          <span className="font-semibold text-ink line-through decoration-amber">
+            ~{usd(roiDefaults.receptionistMonthlyCost)}/mo
+          </span>
+          {" "}— Reva costs{" "}
+          <span className="font-semibold text-lime-ink">{usd(roiDefaults.revaMonthlyPrice)}/mo.</span>
+        </p>
+        <Pill tone="mint" mono>
+          save {usd(savings)}/mo
+        </Pill>
+      </div>
+    </div>
+  );
+}
 
 /* ── Card: Done-For-You (featured) ───────────────────────────── */
 function FeaturedCard() {
   return (
     <Reveal delay={0.1}>
-      {/* Gradient border wrapper */}
-      <div className="relative rounded-2xl p-px bg-gradient-to-br from-cyan/50 via-accent/40 to-accent-2/50">
-        {/* Outer glow */}
-        <div
-          className="absolute -inset-px rounded-2xl blur-2xl bg-gradient-to-br from-cyan/15 via-accent/10 to-accent-2/15"
-          aria-hidden
-        />
+      <div
+        className={cn(
+          "relative flex flex-col overflow-hidden rounded-[1.5rem]",
+          "border-2 border-lime/40",
+          "bg-surface shadow-[0_8px_40px_-8px_rgba(124,223,19,0.25)]"
+        )}
+      >
+        {/* Top dotted band */}
+        <div className="dotted-tight h-11 w-full bg-mint border-b border-lime/20 relative">
+          <div className="absolute inset-0 flex items-center justify-between px-5">
+            <Pill tone="mint" mono>
+              Most popular
+            </Pill>
+            <span className="mono-label text-sage/70">DONE-FOR-YOU</span>
+          </div>
+        </div>
 
-        <div className="relative rounded-[15px] bg-ink-2/90 backdrop-blur-sm overflow-hidden">
-          {/* Top cyan stripe */}
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan/70 to-transparent" />
-
-          {/* Popular badge */}
-          <div className="flex items-center justify-between px-8 pt-8">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-cyan/10 px-3 py-1 text-xs font-medium text-cyan">
-              <Zap size={11} />
-              Most Popular
-            </span>
-            <Sparkles size={16} className="text-accent/60" />
+        <div className="flex flex-col gap-0 p-6 flex-1">
+          {/* Title + tagline */}
+          <div className="pb-5 border-b border-line-soft">
+            <h3 className="font-display text-2xl font-bold text-ink">Done-For-You</h3>
+            <p className="mt-1 text-sm text-muted">
+              Everything set up, trained on your clinic, live in days.
+            </p>
           </div>
 
-          <div className="px-8 pt-5 pb-8">
-            <h3 className="font-display text-2xl font-semibold text-paper">Done-For-You</h3>
-            <p className="mt-1 text-slate text-sm">Everything set up, trained on your clinic, live in days.</p>
-
-            {/* Price */}
-            <div className="mt-6 flex items-end gap-1.5">
-              <span className="font-display text-5xl font-bold text-paper">
-                {usd(roiDefaults.revaMonthlyPrice)}
-              </span>
-              <span className="mb-1.5 text-slate text-sm">/&nbsp;month</span>
+          {/* Price row */}
+          <div className="py-5 border-b border-line-soft flex items-end gap-2">
+            <span className="font-display text-5xl font-extrabold text-ink leading-none">
+              {usd(roiDefaults.revaMonthlyPrice)}
+            </span>
+            <div className="mb-1 flex flex-col gap-0.5">
+              <span className="mono-label text-sage">per month</span>
+              <span className="mono-label text-sage/60">USD · billed monthly</span>
             </div>
+          </div>
 
-            {/* Month-to-month reassurance */}
-            <p className="mt-2 text-xs text-slate/70">
-              Month-to-month — no long-term commitment required.
-            </p>
+          {/* Savings strip */}
+          <div className="py-4 border-b border-line-soft">
+            <SavingsStrip />
+          </div>
 
-            {/* Savings callout */}
-            <div className="mt-5 rounded-xl bg-white/4 border border-white/8 px-4 py-3 flex items-center gap-3">
-              <span className="text-xs text-slate leading-snug">
-                A full-time receptionist costs{" "}
-                <span className="text-paper font-medium line-through decoration-red-400">
-                  ~{usd(roiDefaults.receptionistMonthlyCost)}/mo
-                </span>
-                {" "}— save over{" "}
-                <span className="text-cyan font-semibold">
-                  {usd(roiDefaults.receptionistMonthlyCost - roiDefaults.revaMonthlyPrice)} every month
-                </span>
-              </span>
-            </div>
-
-            {/* CTA */}
-            <Button href={contact.telLink} size="lg" className="mt-7 w-full justify-center">
+          {/* CTA */}
+          <div className="py-5 border-b border-line-soft">
+            <Button href={contact.telLink} size="lg" variant="primary" arrow className="w-full justify-center">
               <Phone size={16} />
               Talk to {contact.salesName}
             </Button>
+            <p className="mt-3 text-center mono-label text-sage/70">
+              month-to-month · cancel anytime · no commitment
+            </p>
+          </div>
 
-            {/* Features */}
-            <ul className="mt-8 space-y-3 border-t border-white/8 pt-7">
-              {doneForYouFeatures.map((feat) => (
-                <li key={feat} className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan/10 shadow-[0_0_6px_1px_rgba(34,211,238,0.2)]">
-                    <Check size={11} className="text-cyan" strokeWidth={3} />
-                  </span>
-                  <span className="text-paper/80 text-sm leading-snug">{feat}</span>
-                </li>
-              ))}
-            </ul>
+          {/* Feature checklist */}
+          <ul className="pt-5 space-y-0 flex-1">
+            {doneForYouFeatures.map((feat, i) => (
+              <li
+                key={feat.text}
+                className={cn(
+                  "flex items-start gap-3 py-2.5",
+                  i < doneForYouFeatures.length - 1 && "border-b border-line-soft"
+                )}
+              >
+                <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-lime/30">
+                  <Check size={10} className="text-lime-ink" strokeWidth={3.5} />
+                </span>
+                <span className="flex-1 text-sm text-muted leading-snug">{feat.text}</span>
+                <span className="shrink-0 mono-label text-sage/60">{feat.note}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Footer trust */}
+          <div className="mt-5 pt-4 border-t border-line-soft flex items-center gap-2">
+            <ShieldCheck size={13} className="text-lime-ink" />
+            <span className="mono-label text-sage/70">no lock-in · live in days · full support</span>
           </div>
         </div>
       </div>
@@ -110,48 +142,84 @@ function FeaturedCard() {
 function CustomCard() {
   return (
     <Reveal delay={0.2}>
-      <div className={cn(
-        "relative h-full rounded-2xl border border-white/8 bg-ink-2/60 p-8",
-        "backdrop-blur-sm flex flex-col"
-      )}>
-        <div className="absolute inset-x-0 top-0 h-px rounded-t-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-        <div className="flex items-center gap-2.5 mb-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/15">
-            <Building2 size={16} className="text-accent" />
-          </span>
-          <h3 className="font-display text-2xl font-semibold text-paper">Custom / Multi-location</h3>
+      <div className={cn("card relative flex flex-col overflow-hidden p-0")}>
+        {/* Top dotted band */}
+        <div className="dotted-tight h-11 w-full bg-bg-soft border-b border-line-soft relative">
+          <div className="absolute inset-0 flex items-center justify-between px-5">
+            <span className="flex items-center gap-1.5">
+              <Building2 size={13} className="text-sage" />
+              <span className="mono-label text-sage/80">ENTERPRISE</span>
+            </span>
+            <Pill tone="gray" mono>Custom quote</Pill>
+          </div>
         </div>
-        <p className="text-slate text-sm">For dental groups, DSOs, or practices with unique needs.</p>
 
-        {/* Price */}
-        <div className="mt-6 flex items-end gap-1.5">
-          <span className="font-display text-4xl font-bold text-paper">Let&apos;s talk</span>
+        <div className="flex flex-col gap-0 p-6 flex-1">
+          {/* Title */}
+          <div className="pb-5 border-b border-line-soft">
+            <h3 className="font-display text-2xl font-bold text-ink">Multi-location / Custom</h3>
+            <p className="mt-1 text-sm text-muted">
+              For dental groups, DSOs, or practices with unique needs.
+            </p>
+          </div>
+
+          {/* Price row */}
+          <div className="py-5 border-b border-line-soft flex items-end gap-2">
+            <span className="font-display text-4xl font-bold text-ink leading-none">Let&apos;s talk</span>
+          </div>
+
+          {/* Volume note */}
+          <div className="py-4 border-b border-line-soft">
+            <div className="rounded-xl border border-line bg-bg-soft px-4 py-3 flex items-center gap-3">
+              <Zap size={14} className="shrink-0 text-sage" />
+              <p className="text-xs text-muted leading-snug">
+                Volume pricing tailored to your group. Custom SLAs and dedicated support included.
+              </p>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="py-5 border-b border-line-soft">
+            <Button
+              href={contact.telLink}
+              size="lg"
+              variant="outline"
+              arrow
+              className="w-full justify-center"
+            >
+              <Phone size={16} />
+              Talk to {contact.salesName}
+            </Button>
+            <p className="mt-3 text-center mono-label text-sage/70">
+              flexible terms · dedicated account manager
+            </p>
+          </div>
+
+          {/* Feature checklist */}
+          <ul className="pt-5 space-y-0 flex-1">
+            {customFeatures.map((feat, i) => (
+              <li
+                key={feat.text}
+                className={cn(
+                  "flex items-start gap-3 py-2.5",
+                  i < customFeatures.length - 1 && "border-b border-line-soft"
+                )}
+              >
+                <span className="mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-ink/[0.06]">
+                  <Check size={10} className="text-muted" strokeWidth={3.5} />
+                </span>
+                <span className="flex-1 text-sm text-muted leading-snug">{feat.text}</span>
+                <span className="shrink-0 mono-label text-sage/60">{feat.note}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Footer trust */}
+          <div className="mt-5 pt-4 border-t border-line-soft flex items-center gap-2">
+            <ShieldCheck size={13} className="text-sage" />
+            <span className="mono-label text-sage/70">enterprise SLA · custom integration · NDA available</span>
+          </div>
         </div>
-        <p className="mt-2 text-xs text-slate/70">Volume pricing tailored to your group.</p>
-
-        {/* CTA */}
-        <Button
-          href={contact.telLink}
-          size="lg"
-          variant="outline"
-          className="mt-7 w-full justify-center"
-        >
-          <Phone size={16} />
-          Talk to {contact.salesName}
-        </Button>
-
-        {/* Features */}
-        <ul className="mt-8 space-y-3 border-t border-white/8 pt-7 flex-1">
-          {customFeatures.map((feat) => (
-            <li key={feat} className="flex items-start gap-3">
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10">
-                <Check size={11} className="text-accent" strokeWidth={3} />
-              </span>
-              <span className="text-paper/80 text-sm leading-snug">{feat}</span>
-            </li>
-          ))}
-        </ul>
       </div>
     </Reveal>
   );
@@ -162,20 +230,38 @@ export default function Pricing() {
   return (
     <Section
       id="pricing"
-      eyebrow="Pricing"
+      index="07"
+      label="PRICING"
       title={
         <>
           Straightforward pricing,{" "}
-          <span className="text-gradient">serious ROI</span>
+          <span className="text-lime-ink">serious ROI.</span>
         </>
       }
       intro={`Replace a ${usd(roiDefaults.receptionistMonthlyCost)}/mo receptionist with an AI that works harder, never calls in sick, and costs a fraction of the price.`}
       center
     >
-      <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto items-start">
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto items-start">
         <FeaturedCard />
         <CustomCard />
       </div>
+
+      {/* Bottom reassurance row */}
+      <Reveal delay={0.3}>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5">
+          {[
+            { icon: <ShieldCheck size={11} />, text: "No long-term contract" },
+            { icon: <Zap size={11} />, text: "Live in days" },
+            { icon: <Check size={11} strokeWidth={3} />, text: "Month-to-month billing" },
+            { icon: <Phone size={11} />, text: "Full setup included" },
+          ].map((item, i) => (
+            <span key={i} className="flex items-center gap-1.5 mono-label text-sage/80">
+              <span className="text-lime-ink">{item.icon}</span>
+              {item.text}
+            </span>
+          ))}
+        </div>
+      </Reveal>
     </Section>
   );
 }
