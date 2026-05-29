@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Reva AI — Dental AI Receptionist website
 
-## Getting Started
+A premium, 3D, interactive marketing site for an agency that sells AI **voice**
+and **chat** receptionists to dental clinics. Built with Next.js + React Three
+Fiber + Tailwind, designed in the spirit of cuberto / landio / arini.ai.
 
-First, run the development server:
+## Run it locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Production build / preview:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+npm run start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ✏️ Everything you'll want to change lives in ONE file
 
-## Learn More
+Open **`lib/config.ts`**:
 
-To learn more about Next.js, take a look at the following resources:
+- **Brand** — name, tagline, the AI persona name ("Reva").
+- **Contact** — `phoneDisplay` / `phoneE164`. This is **Aiden's number and the
+  only number shown anywhere on the site**. The founder's number is never
+  displayed. The click-to-call / SMS / WhatsApp links are generated from this
+  automatically:
+  - Call → `tel:+19493978560`
+  - Text → `sms:+19493978560`
+  - WhatsApp → `https://wa.me/19493978560`
+- **Team** — Aiden has `showContact: true` (his call/text/WhatsApp buttons
+  show). The founder has `showContact: false` (no number, no buttons).
+- **ROI numbers** — `roiDefaults` powers the calculator and the stats.
+- **Voice demos** — the `voiceDemos` array (see below).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🎙️ Adding your ElevenLabs voice-call demos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The homepage has three "Hear Reva on a real call" cards. They currently show a
+polished **"Demo coming soon"** state. To make one play:
 
-## Deploy on Vercel
+1. Drop the recording into `public/demos/`, e.g. `public/demos/new-patient.mp3`.
+2. In `lib/config.ts`, set that demo's `audioSrc: "/demos/new-patient.mp3"`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The card automatically turns into a working audio player. (See
+`public/demos/README.md`.)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 💬 The "Ask Reva" assistant
+
+The floating button (bottom-right) opens an AI Q&A assistant. It works out of the
+box using a built-in dental knowledge base in `app/api/ask/route.ts` — no API key
+needed. To upgrade it to a real LLM, follow the comment at the top of that file
+(install `@anthropic-ai/sdk`, set `ANTHROPIC_API_KEY`, swap the answer function).
+
+## 🧩 The chat demos
+
+`components/sections/ChatDemos.tsx` holds three WhatsApp-style scripted
+conversations (Website Receptionist, WhatsApp/SMS Agent, Patient Recall Agent).
+Edit the `conversations` array there to change clinics, scripts, or add a fourth.
+
+## Pages
+
+`/` (landing) · `/about` · `/roi` (Save Money & Time) · `/team` · `/contact`
+
+## Deploy
+
+This is a standard Next.js app — deploy to **Vercel** (recommended) or any Node
+host. On Vercel: import the repo, set the root directory to `dental-ai-website`,
+and deploy. No env vars are required for the default build.
