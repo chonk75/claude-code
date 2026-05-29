@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { motion, useSpring, useTransform } from "motion/react";
 import { PhoneMissed, Clock, TrendingUp, Sparkles, DollarSign } from "lucide-react";
 import Section from "@/components/ui/Section";
 import Pill from "@/components/ui/Pill";
@@ -127,6 +127,9 @@ const innerW = W - padL - padR;
 const innerH = H - padT - padB;
 const bottom = padT + innerH;
 
+const x = (m: number) => padL + (innerW * m) / MONTHS;
+const SPRING = { stiffness: 130, damping: 22, mass: 0.5 };
+
 function GrowthChart({
   total,
   recovery,
@@ -140,31 +143,46 @@ function GrowthChart({
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const residual = 1 - recovery;
-  // Peak of the curve sits at `heightFrac` of the chart height.
-  const yMax = total > 0 ? total / clamp(heightFrac, 0.04, 0.98) : 1;
 
-  const x = (m: number) => padL + (innerW * m) / MONTHS;
+  // Springs that continuously track the targets → the curve follows the
+  // slider buttery-smooth instead of jumping in steps.
+  const tSpring = useSpring(total, SPRING);
+  const hSpring = useSpring(heightFrac, SPRING);
+
+  // Geometry derived live from the springs (recomputed every animation frame).
+  const calc = (t: number, h: number) => {
+    const yMax = t > 0 ? t / clamp(h, 0.04, 0.98) : 1;
+    const yv = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
+    const loss: number[][] = [];
+    const reva: number[][] = [];
+    for (let i = 0; i <= STEPS; i++) {
+      const m = (i / STEPS) * MONTHS;
+      const g = growthFrac(m);
+      loss.push([x(m), yv(t * g)]);
+      reva.push([x(m), yv(t * residual * g)]);
+    }
+    return { loss, reva };
+  };
+
+  const lossLine = useTransform([tSpring, hSpring], ([t, h]: number[]) => smoothPath(calc(t, h).loss));
+  const revaLine = useTransform([tSpring, hSpring], ([t, h]: number[]) => smoothPath(calc(t, h).reva));
+  const savingsArea = useTransform([tSpring, hSpring], ([t, h]: number[]) => {
+    const { loss, reva } = calc(t, h);
+    return smoothPath(loss) + " " + smoothPath([...reva].reverse()).replace(/^M/, "L") + " Z";
+  });
+  const residualArea = useTransform([tSpring, hSpring], ([t, h]: number[]) => {
+    const { reva } = calc(t, h);
+    return `${smoothPath(reva)} L ${x(MONTHS).toFixed(1)} ${bottom.toFixed(1)} L ${x(0).toFixed(1)} ${bottom.toFixed(1)} Z`;
+  });
+  const dotCy = useTransform([tSpring, hSpring], ([t, h]: number[]) => calc(t, h).loss[STEPS][1]);
+
+  // Static helpers for ticks / hover (target values — labels can update in steps)
+  const yMax = total > 0 ? total / clamp(heightFrac, 0.04, 0.98) : 1;
   const yv = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
   const lossAt = (m: number) => total * growthFrac(m);
   const revaAt = (m: number) => total * residual * growthFrac(m);
-
-  const lossPts = Array.from({ length: STEPS + 1 }, (_, i) => {
-    const m = (i / STEPS) * MONTHS;
-    return [x(m), yv(lossAt(m))];
-  });
-  const revaPts = Array.from({ length: STEPS + 1 }, (_, i) => {
-    const m = (i / STEPS) * MONTHS;
-    return [x(m), yv(revaAt(m))];
-  });
-
-  const lossLine = smoothPath(lossPts);
-  const revaLine = smoothPath(revaPts);
-  const savingsArea =
-    lossLine + " " + smoothPath([...revaPts].reverse()).replace(/^M/, "L") + " Z";
-  const residualArea = `${revaLine} L ${x(MONTHS).toFixed(1)} ${bottom.toFixed(1)} L ${x(0).toFixed(1)} ${bottom.toFixed(1)} Z`;
-
   const ticks = [0, 0.5, 1].map((f) => ({ yy: bottom - innerH * f, label: fmt(yMax * f) }));
-  const gid = `g-${fmt(1).replace(/[^a-z]/gi, "")}-${Math.round(total)}`;
+  const gid = `g-${fmt(1).replace(/[^a-z]/gi, "")}`;
 
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
     const r = e.currentTarget.getBoundingClientRect();
@@ -191,11 +209,11 @@ function GrowthChart({
           </g>
         ))}
 
-        <motion.path d={residualArea} fill="rgba(224,133,46,0.10)" initial={false} animate={{ d: residualArea }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
-        <motion.path d={savingsArea} fill={`url(#${gid})`} initial={false} animate={{ d: savingsArea }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
-        <motion.path d={lossLine} fill="none" stroke="#163a22" strokeOpacity={0.5} strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" initial={false} animate={{ d: lossLine }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
-        <motion.path d={revaLine} fill="none" stroke="#3f7a08" strokeWidth={3} strokeLinecap="round" initial={false} animate={{ d: revaLine }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
-        <motion.circle r={4.5} fill="#163a22" initial={false} animate={{ cx: x(MONTHS), cy: yv(lossAt(MONTHS)) }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
+        <motion.path d={residualArea} fill="rgba(224,133,46,0.10)" />
+        <motion.path d={savingsArea} fill={`url(#${gid})`} />
+        <motion.path d={lossLine} fill="none" stroke="#163a22" strokeOpacity={0.5} strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" />
+        <motion.path d={revaLine} fill="none" stroke="#3f7a08" strokeWidth={3} strokeLinecap="round" />
+        <motion.circle cx={x(MONTHS)} cy={dotCy} r={4.5} fill="#163a22" />
 
         {hover != null && (
           <g>
