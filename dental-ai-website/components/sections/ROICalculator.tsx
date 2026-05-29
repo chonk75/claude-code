@@ -105,19 +105,11 @@ function smoothPath(points: number[][], tension = 0.5): string {
   return d;
 }
 
-/* Organic month-to-month variation: the cumulative line still always rises,
-   but the slope swells and eases so the curve has real, flowing bends
-   (not a straight diagonal). Weights are positive → strictly increasing. */
-const WAVE_WEIGHTS = Array.from({ length: MONTHS }, (_, i) =>
-  Math.max(0.12, (0.45 + i * 0.14) * (1 + 0.8 * Math.sin(i * 1.15 + 0.5)))
-);
-const WAVE_TOTAL = WAVE_WEIGHTS.reduce((a, b) => a + b, 0);
-const WAVE_CUM = WAVE_WEIGHTS.reduce<number[]>((acc, w, i) => {
-  acc.push((acc[i - 1] || 0) + w);
-  return acc;
-}, []);
-const cumFrac = (m: number) =>
-  m <= 0 ? 0 : WAVE_CUM[Math.min(m, MONTHS) - 1] / WAVE_TOTAL;
+/* Smooth exponential "J-curve": flat along the bottom, then sweeps up and
+   curves to nearly vertical at the end. (Endpoint = 1 = true yearly total.) */
+const GROWTH_K = 3.6;
+const growthFrac = (m: number) =>
+  (Math.exp(GROWTH_K * (m / MONTHS)) - 1) / (Math.exp(GROWTH_K) - 1);
 
 export default function ROICalculator() {
   const [missed, setMissed] = useState(roiDefaults.missedCallsDefault);
@@ -163,15 +155,23 @@ export default function ROICalculator() {
   const yMax = Math.max(120000, lostPerYear * 1.15);
   const x = (m: number) => padL + (innerW * m) / MONTHS;
   const y = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
-  // Wavy, organic climb — slope swells and eases each month (always rising).
+  // Smooth exponential climb — flat start, sweeping up to near-vertical.
   // Endpoint at month 12 stays the true yearly total.
-  const lossAt = (m: number) => lostPerYear * cumFrac(m);
-  const revaAt = (m: number) => lostPerYear * residual * cumFrac(m);
+  const lossAt = (m: number) => lostPerYear * growthFrac(m);
+  const revaAt = (m: number) => lostPerYear * residual * growthFrac(m);
 
-  const lossPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(lossAt(m))]);
-  const revaPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(revaAt(m))]);
+  // sample more densely so the curve is silky-smooth
+  const STEPS = 48;
+  const lossPts = Array.from({ length: STEPS + 1 }, (_, i) => {
+    const m = (i / STEPS) * MONTHS;
+    return [x(m), y(lossAt(m))];
+  });
+  const revaPts = Array.from({ length: STEPS + 1 }, (_, i) => {
+    const m = (i / STEPS) * MONTHS;
+    return [x(m), y(revaAt(m))];
+  });
 
-  const T = 0.28; // lower tension = curvier
+  const T = 0.5;
   const lossLine = smoothPath(lossPts, T);
   const revaLine = smoothPath(revaPts, T);
   // savings area = the smooth loss curve (top) flowing back along the reva curve
