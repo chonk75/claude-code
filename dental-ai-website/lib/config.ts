@@ -98,7 +98,18 @@ export const roiDefaults = {
   receptionistMonthlyCost: 3200,
   /** Reva monthly price (display only — change to your real pricing). */
   revaMonthlyPrice: 499,
+
+  /* ── Interactive ROI dashboard defaults (the live graph) ── */
+  /** Missed calls per month (draggable). */
+  missedCallsDefault: 15,
+  /** Average value of a booked appointment ($, typeable). */
+  avgAppointmentValue: 250,
+  /** Average length of a phone call in minutes (draggable). */
+  minutesPerCall: 3,
+  /** Share of missed calls Reva recovers (0–1). */
+  revaRecoveryRate: 0.92,
 };
+
 
 /**
  * DEMO SLOTS — drop your real ElevenLabs ("11") call recordings here later.

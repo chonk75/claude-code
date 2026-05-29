@@ -1,66 +1,45 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Phone } from "lucide-react";
-import { animate } from "motion/react";
-import { cn, usd } from "@/lib/utils";
-import { contact, roiDefaults } from "@/lib/config";
-import Button from "@/components/ui/Button";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { PhoneMissed, Clock, TrendingUp, Sparkles } from "lucide-react";
 import Section from "@/components/ui/Section";
-import Reveal from "@/components/ui/Reveal";
 import Pill from "@/components/ui/Pill";
+import Button from "@/components/ui/Button";
+import { brand, contact, roiDefaults } from "@/lib/config";
+import { usd, cn } from "@/lib/utils";
 
-/* ─── helpers ─────────────────────────────────────────────────────────────── */
-
-function computeROI(
-  missedCalls: number,
-  avgValue: number,
-  conversionPct: number
-) {
-  const conversion = conversionPct / 100;
-  const lostMonthly = missedCalls * conversion * avgValue;
-  const lostYearly = lostMonthly * 12;
-  const recoveredMonthly = lostMonthly * 0.9;
-  const recoveredYearly = recoveredMonthly * 12;
-  const netMonthly = recoveredMonthly - roiDefaults.revaMonthlyPrice;
-  const roiMultiple =
-    roiDefaults.revaMonthlyPrice > 0
-      ? recoveredMonthly / roiDefaults.revaMonthlyPrice
-      : 0;
-  return { lostMonthly, lostYearly, recoveredMonthly, recoveredYearly, netMonthly, roiMultiple };
-}
-
-/* ─── animated number hook ────────────────────────────────────────────────── */
-
-function useAnimatedValue(target: number, duration = 0.6) {
-  const [display, setDisplay] = useState(target);
-  const prevRef = useRef(target);
-
+/* Smoothly eases a displayed number toward its target whenever the target
+   changes — gives the KPIs a polished "catch-up" feel while dragging. */
+function useEased(target: number, dur = 480) {
+  const [val, setVal] = useState(target);
+  const from = useRef(target);
+  const raf = useRef(0);
   useEffect(() => {
-    const from = prevRef.current;
-    prevRef.current = target;
-    const controls = animate(from, target, {
-      duration,
-      ease: [0.16, 1, 0.3, 1],
-      onUpdate(v) {
-        setDisplay(Math.round(v));
-      },
-    });
-    return () => controls.stop();
-  }, [target, duration]);
-
-  return display;
+    from.current = val;
+    const start = performance.now();
+    cancelAnimationFrame(raf.current);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      setVal(from.current + (target - from.current) * e);
+      if (t < 1) raf.current = requestAnimationFrame(tick);
+    };
+    raf.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+  return val;
 }
 
-/* ─── slider component ────────────────────────────────────────────────────── */
-
+/* ── Premium slider ───────────────────────────────────────── */
 function Slider({
   label,
   value,
   min,
   max,
   step = 1,
-  format,
+  suffix,
   onChange,
 }: {
   label: string;
@@ -68,26 +47,25 @@ function Slider({
   min: number;
   max: number;
   step?: number;
-  format: (v: number) => string;
+  suffix: string;
   onChange: (v: number) => void;
 }) {
   const pct = ((value - min) / (max - min)) * 100;
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+    <div>
+      <div className="flex items-end justify-between">
         <span className="mono-label">{label}</span>
-        <Pill tone="mint" mono>{format(value)}</Pill>
+        <Pill tone="mint" mono>
+          {value}
+          {suffix}
+        </Pill>
       </div>
-      <div className="relative">
-        {/* track background */}
-        <div className="relative h-2 rounded-full bg-line overflow-hidden">
-          {/* filled portion */}
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-lime transition-all duration-100"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+      <div className="relative mt-3 h-5">
+        <div className="absolute top-1/2 h-1.5 w-full -translate-y-1/2 rounded-full bg-line" />
+        <div
+          className="absolute top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-lime"
+          style={{ width: `${pct}%` }}
+        />
         <input
           type="range"
           min={min}
@@ -95,276 +73,409 @@ function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          className="roi-range absolute inset-0 w-full cursor-pointer appearance-none bg-transparent"
           aria-label={label}
-          style={{ accentColor: "var(--color-lime)" }}
-        />
-        {/* thumb */}
-        <div
-          className="pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-5 rounded-full bg-lime shadow-[0_2px_10px_rgba(124,223,19,0.5)] ring-2 ring-lime/40 transition-all duration-100"
-          style={{ left: `${pct}%` }}
         />
       </div>
-      <div className="flex justify-between font-mono text-[0.7rem] uppercase tracking-wider text-sage">
-        <span>{format(min)}</span>
-        <span>{format(max)}</span>
-      </div>
     </div>
   );
 }
 
-/* ─── big stat in results panel ───────────────────────────────────────────── */
-
-function BigStat({
-  label,
-  value,
-  prefix = "",
-  suffix = "",
-  dim = false,
-  delta,
-}: {
-  label: string;
-  value: number;
-  prefix?: string;
-  suffix?: string;
-  dim?: boolean;
-  delta?: string;
-}) {
-  const animVal = useAnimatedValue(value);
-  return (
-    <div className={cn("space-y-1.5", dim && "opacity-60")}>
-      <p className="mono-label">{label}</p>
-      <p className="font-display text-3xl font-bold text-ink leading-none">
-        {prefix}
-        {animVal.toLocaleString()}
-        {suffix}
-      </p>
-      {delta && (
-        <Pill tone="mint" mono>{delta}</Pill>
-      )}
-    </div>
-  );
-}
-
-function BigUsdStat({
-  label,
-  value,
-  large = false,
-  delta,
-}: {
-  label: string;
-  value: number;
-  large?: boolean;
-  delta?: string;
-}) {
-  const animVal = useAnimatedValue(value);
-  return (
-    <div className="space-y-1.5">
-      <p className="mono-label">{label}</p>
-      <p
-        className={cn(
-          "font-display font-bold text-ink leading-none",
-          large ? "text-5xl md:text-6xl" : "text-3xl"
-        )}
-      >
-        {usd(animVal)}
-      </p>
-      {delta && (
-        <Pill tone="mint" mono>{delta}</Pill>
-      )}
-    </div>
-  );
-}
-
-/* ─── main component ──────────────────────────────────────────────────────── */
+const MONTHS = 12;
 
 export default function ROICalculator() {
-  const [missedCalls, setMissedCalls] = useState(10);
-  const [avgValue, setAvgValue] = useState(roiDefaults.avgPatientValue);
-  const [conversionPct, setConversionPct] = useState(
-    Math.round(roiDefaults.newPatientConversion * 100)
-  );
+  const [missed, setMissed] = useState(roiDefaults.missedCallsDefault);
+  const [value, setValue] = useState(roiDefaults.avgAppointmentValue);
+  const [minutes, setMinutes] = useState(roiDefaults.minutesPerCall);
+  const [hover, setHover] = useState<number | null>(null);
 
-  const roi = computeROI(missedCalls, avgValue, conversionPct);
+  const recovery = roiDefaults.revaRecoveryRate;
+  const residual = 1 - recovery;
 
-  const roiMultipleDisplay = useAnimatedValue(
-    Math.round(roi.roiMultiple * 10) / 10
-  );
+  // Money
+  const lostPerMonth = missed * value;
+  const lostPerYear = lostPerMonth * MONTHS;
+  const savedPerYear = lostPerYear * recovery;
+  const revaCostYear = roiDefaults.revaMonthlyPrice * MONTHS;
+  const netGain = savedPerYear - revaCostYear;
+  const roiX = revaCostYear > 0 ? savedPerYear / revaCostYear : 0;
+
+  // Time
+  const minutesPerMonth = missed * minutes;
+  const hoursPerYear = (minutesPerMonth * MONTHS) / 60;
+  const workDays = hoursPerYear / 8;
+
+  // Eased display values
+  const dLostYear = useEased(lostPerYear);
+  const dSavedYear = useEased(savedPerYear);
+  const dHours = useEased(hoursPerYear);
+  const dRoi = useEased(roiX);
+  const dLostMonth = useEased(lostPerMonth);
+  const dNet = useEased(netGain);
+
+  /* ── Chart geometry ── */
+  const W = 720;
+  const H = 300;
+  const padL = 6;
+  const padR = 6;
+  const padT = 18;
+  const padB = 26;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const bottom = padT + innerH;
+
+  const yMax = Math.max(120000, lostPerYear * 1.15);
+  const x = (m: number) => padL + (innerW * m) / MONTHS;
+  const y = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
+  const lossAt = (m: number) => lostPerMonth * m;
+  const revaAt = (m: number) => lostPerMonth * residual * m;
+
+  const lossPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(lossAt(m))]);
+  const revaPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(revaAt(m))]);
+
+  const toLine = (pts: number[][]) =>
+    pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+
+  const lossLine = toLine(lossPts);
+  const revaLine = toLine(revaPts);
+  // savings area = between the loss line (top) and reva line (bottom)
+  const savingsArea =
+    toLine(lossPts) +
+    " " +
+    revaPts
+      .slice()
+      .reverse()
+      .map((p) => `L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+      .join(" ") +
+    " Z";
+  // residual loss area (under reva line)
+  const residualArea = `${toLine(revaPts)} L ${x(MONTHS).toFixed(1)} ${bottom} L ${x(0).toFixed(1)} ${bottom} Z`;
+
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({
+    yv: bottom - innerH * f,
+    label: usd(yMax * f).replace("$", "$"),
+  }));
+
+  const hoverData =
+    hover != null
+      ? { month: hover, lost: lossAt(hover), saved: lossAt(hover) - revaAt(hover) }
+      : null;
+
+  function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const frac = (e.clientX - rect.left) / rect.width;
+    const m = Math.round(frac * MONTHS);
+    setHover(Math.max(1, Math.min(MONTHS, m)));
+  }
 
   return (
     <Section
-      id="roi-calculator"
+      id="roi"
       index="03"
       label="ROI CALCULATOR"
       title={
         <>
-          See exactly how much{" "}
-          <em className="font-serif not-italic text-lime-ink">you&apos;re losing</em>
+          See exactly how much you&apos;re{" "}
+          <span className="text-lime-ink">losing</span>.
         </>
       }
-      intro="Adjust the sliders to match your practice. Reva turns missed calls into booked appointments — the numbers update live."
+      intro="Drag the sliders to match your practice. The graph climbs with every missed call — and shows what Reva puts back."
     >
-      <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* ── Left: sliders ─────────────────────────────────────────── */}
-        <Reveal>
-          <div className="card p-8 space-y-8 dotted-tight">
-            {/* Panel header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-mint flex items-center justify-center border border-lime/30">
-                  <Phone className="h-4 w-4 text-lime-ink" />
-                </div>
-                <h3 className="font-display text-base font-semibold text-ink uppercase tracking-wide">
-                  Your Practice Numbers
-                </h3>
+      <style>{`
+        .roi-range::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:9999px; background:#163a22; border:3px solid #7cdf13; box-shadow:0 2px 8px rgba(15,44,26,.35); cursor:pointer; }
+        .roi-range::-moz-range-thumb{ width:20px; height:20px; border-radius:9999px; background:#163a22; border:3px solid #7cdf13; cursor:pointer; }
+      `}</style>
+
+      <div className="mt-12 card overflow-hidden">
+        {/* dashboard header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bg-soft px-5 py-3.5 dotted-tight">
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+            <span className="h-2 w-2 animate-pulse-dot rounded-full bg-lime" />
+            Missed-call ROI · live
+          </span>
+          <span className="mono-label">{brand.name} dashboard</span>
+        </div>
+
+        <div className="grid lg:grid-cols-[300px_1fr]">
+          {/* ── Controls ── */}
+          <div className="space-y-7 border-b border-line p-6 lg:border-b-0 lg:border-r">
+            <span className="mono-label">Your practice numbers</span>
+
+            <Slider
+              label="Missed calls / month"
+              value={missed}
+              min={0}
+              max={60}
+              suffix=" calls"
+              onChange={setMissed}
+            />
+
+            {/* typed appointment value */}
+            <div>
+              <span className="mono-label">Average appointment value</span>
+              <div className="mt-3 flex items-center rounded-xl border border-line bg-surface focus-within:ring-2 focus-within:ring-lime">
+                <span className="pl-3 font-display text-lg font-bold text-muted">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={10}
+                  value={value}
+                  onChange={(e) => setValue(Math.max(0, Number(e.target.value)))}
+                  className="w-full bg-transparent px-2 py-2.5 font-display text-lg font-bold text-ink focus:outline-none"
+                  aria-label="Average appointment value"
+                />
+                <span className="pr-3 text-xs text-muted">/ visit</span>
               </div>
-              {/* LIVE indicator */}
-              <span className="flex items-center gap-1.5 font-mono text-[0.68rem] uppercase tracking-widest text-lime-ink">
-                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot" />
-                Live
+            </div>
+
+            <Slider
+              label="Minutes per call"
+              value={minutes}
+              min={1}
+              max={15}
+              suffix=" min"
+              onChange={setMinutes}
+            />
+
+            <div className="rounded-xl border border-line bg-mint p-3">
+              <p className="mono-label !text-lime-ink">time on the phone</p>
+              <p className="mt-1 text-sm text-ink">
+                <span className="font-display text-lg font-bold">{minutesPerMonth}</span> min /
+                month chasing missed calls
+              </p>
+            </div>
+          </div>
+
+          {/* ── Chart + KPIs ── */}
+          <div className="p-6">
+            {/* KPI row */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Kpi
+                icon={<PhoneMissed className="h-3.5 w-3.5" />}
+                label="Lost / year"
+                value={usd(dLostYear)}
+                tone="loss"
+                sub={`${usd(dLostMonth)}/mo`}
+              />
+              <Kpi
+                icon={<Sparkles className="h-3.5 w-3.5" />}
+                label="Reva saves / yr"
+                value={usd(dSavedYear)}
+                tone="save"
+                sub={`net ${usd(dNet)}`}
+              />
+              <Kpi
+                icon={<Clock className="h-3.5 w-3.5" />}
+                label="Hours lost / yr"
+                value={`${dHours.toFixed(0)}h`}
+                tone="neutral"
+                sub={`≈ ${workDays.toFixed(1)} work days`}
+              />
+              <Kpi
+                icon={<TrendingUp className="h-3.5 w-3.5" />}
+                label="Return"
+                value={`${dRoi.toFixed(0)}×`}
+                tone="save"
+                sub="on Reva's cost"
+              />
+            </div>
+
+            {/* legend */}
+            <div className="mt-6 flex items-center gap-5 text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-lime/60" /> You keep this with {brand.agentName}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="inline-block h-0 w-4 border-t-2 border-dashed border-ink/50" /> Lost without {brand.agentName}
               </span>
             </div>
 
-            <div className="h-px bg-line-soft" />
+            {/* chart */}
+            <div
+              className="relative mt-3"
+              onMouseMove={onMove}
+              onMouseLeave={() => setHover(null)}
+            >
+              <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full select-none">
+                <defs>
+                  <linearGradient id="saveGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#7cdf13" stopOpacity="0.55" />
+                    <stop offset="100%" stopColor="#7cdf13" stopOpacity="0.08" />
+                  </linearGradient>
+                </defs>
 
-            <Slider
-              label="Missed calls per month"
-              value={missedCalls}
-              min={0}
-              max={40}
-              step={1}
-              format={(v) => `${v} calls`}
-              onChange={setMissedCalls}
-            />
+                {/* gridlines + y ticks */}
+                {ticks.map((t, i) => (
+                  <g key={i}>
+                    <line
+                      x1={padL}
+                      x2={W - padR}
+                      y1={t.yv}
+                      y2={t.yv}
+                      stroke="rgba(15,44,26,0.08)"
+                      strokeDasharray="3 5"
+                    />
+                    <text x={padL + 2} y={t.yv - 4} className="fill-sage" style={{ font: "600 10px var(--font-mono)" }}>
+                      {t.label}
+                    </text>
+                  </g>
+                ))}
 
-            <Slider
-              label="Average new-patient value"
-              value={avgValue}
-              min={300}
-              max={3000}
-              step={100}
-              format={(v) => usd(v)}
-              onChange={setAvgValue}
-            />
+                {/* residual loss (faint, under Reva line) */}
+                <motion.path
+                  d={residualArea}
+                  fill="rgba(224,133,46,0.10)"
+                  initial={false}
+                  animate={{ d: residualArea }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                />
+                {/* savings area */}
+                <motion.path
+                  d={savingsArea}
+                  fill="url(#saveGrad)"
+                  initial={false}
+                  animate={{ d: savingsArea }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                />
+                {/* loss line (dashed ceiling) */}
+                <motion.path
+                  d={lossLine}
+                  fill="none"
+                  stroke="#163a22"
+                  strokeOpacity={0.55}
+                  strokeWidth={2.5}
+                  strokeDasharray="6 5"
+                  strokeLinecap="round"
+                  initial={false}
+                  animate={{ d: lossLine }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                />
+                {/* reva line (solid lime) */}
+                <motion.path
+                  d={revaLine}
+                  fill="none"
+                  stroke="#3f7a08"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  initial={false}
+                  animate={{ d: revaLine }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                />
 
-            <Slider
-              label="% of missed callers who'd book"
-              value={conversionPct}
-              min={10}
-              max={80}
-              step={1}
-              format={(v) => `${v}%`}
-              onChange={setConversionPct}
-            />
+                {/* endpoint marker on loss line */}
+                <motion.circle
+                  r={5}
+                  fill="#163a22"
+                  initial={false}
+                  animate={{ cx: x(MONTHS), cy: y(lossAt(MONTHS)) }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                />
 
-            {/* quick reference */}
-            <div className="pt-4 border-t border-line-soft">
-              <p className="mono-label mb-2">Industry averages</p>
-              <p className="text-xs text-muted leading-relaxed">
-                5–15 missed calls/month · 30–40% conversion rate ·{" "}
-                {usd(roiDefaults.avgPatientValue)} avg patient value
-              </p>
+                {/* hover guide */}
+                {hover != null && (
+                  <g>
+                    <line
+                      x1={x(hover)}
+                      x2={x(hover)}
+                      y1={padT}
+                      y2={bottom}
+                      stroke="rgba(15,44,26,0.25)"
+                    />
+                    <circle cx={x(hover)} cy={y(lossAt(hover))} r={4} fill="#163a22" />
+                    <circle cx={x(hover)} cy={y(revaAt(hover))} r={4} fill="#3f7a08" />
+                  </g>
+                )}
+
+                {/* month labels */}
+                {[0, 3, 6, 9, 12].map((m) => (
+                  <text
+                    key={m}
+                    x={x(m)}
+                    y={H - 6}
+                    textAnchor={m === 0 ? "start" : m === 12 ? "end" : "middle"}
+                    className="fill-sage"
+                    style={{ font: "600 10px var(--font-mono)" }}
+                  >
+                    {m === 0 ? "now" : `M${m}`}
+                  </text>
+                ))}
+              </svg>
+
+              {/* hover tooltip */}
+              {hoverData && (
+                <div
+                  className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-xl border border-line bg-surface px-3 py-2 text-xs shadow-lg"
+                  style={{ left: `${(x(hoverData.month) / W) * 100}%` }}
+                >
+                  <p className="mono-label !text-[0.6rem]">Month {hoverData.month}</p>
+                  <p className="mt-1 text-ink">
+                    Lost: <span className="font-semibold">{usd(hoverData.lost)}</span>
+                  </p>
+                  <p className="text-lime-ink">
+                    Saved: <span className="font-semibold">{usd(hoverData.saved)}</span>
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        </Reveal>
 
-        {/* ── Right: results ────────────────────────────────────────── */}
-        <Reveal delay={0.12}>
-          <div className="rounded-3xl overflow-hidden border border-forest/20">
-            {/* Dark forest header with yearly loss */}
-            <div className="relative bg-forest grain px-8 pt-8 pb-7">
-              <div className="flex items-center justify-between mb-4">
-                <p className="mono-label text-sage/80">
-                  Revenue you&apos;re losing every year
-                </p>
-                <Pill tone="solid" mono>
-                  <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-dot inline-block" />
-                  Live calc
-                </Pill>
+            {/* comparison + CTA */}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-bg-soft px-4 py-3">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-muted">
+                  Front-desk hire{" "}
+                  <span className="font-mono text-ink line-through">
+                    {usd(roiDefaults.receptionistMonthlyCost)}/mo
+                  </span>
+                </span>
+                <span className="text-sage">vs</span>
+                <span className="text-muted">
+                  {brand.agentName}{" "}
+                  <span className="font-mono font-semibold text-lime-ink">
+                    {usd(roiDefaults.revaMonthlyPrice)}/mo
+                  </span>
+                </span>
               </div>
-              <YearlyLostNumber value={roi.lostYearly} />
-              <p className="mt-2 text-sm text-sage/60">
-                Based on {missedCalls} missed calls/mo at {conversionPct}% conversion
-              </p>
-            </div>
-
-            {/* Stats grid on white */}
-            <div className="bg-surface px-8 py-7 space-y-6">
-              {/* 2×2 grid */}
-              <div className="grid grid-cols-2 gap-6">
-                <BigUsdStat
-                  label="Lost per month"
-                  value={roi.lostMonthly}
-                  delta="↓ monthly gap"
-                />
-                <BigUsdStat
-                  label="Reva recovers / mo"
-                  value={roi.recoveredMonthly}
-                  delta="↑ 90% recovery"
-                />
-                <BigUsdStat
-                  label="Net gain after Reva"
-                  value={roi.netMonthly}
-                  delta="after $499/mo"
-                />
-                <div className="space-y-1.5">
-                  <p className="mono-label">Return on investment</p>
-                  <p className="font-display text-3xl font-bold text-ink leading-none">
-                    {Math.round(roiMultipleDisplay)}×
-                  </p>
-                  <Pill tone="mint" mono>62× return</Pill>
-                </div>
-              </div>
-
-              <div className="h-px bg-line-soft" />
-
-              {/* Comparison strip */}
-              <div className="flex items-center justify-between gap-4 rounded-2xl bg-bg-soft border border-line px-5 py-4">
-                <div className="space-y-0.5">
-                  <p className="mono-label">Front-desk receptionist</p>
-                  <p className="font-display font-semibold text-ink text-lg">
-                    {usd(roiDefaults.receptionistMonthlyCost)}
-                    <span className="font-normal text-muted text-sm"> / mo</span>
-                  </p>
-                </div>
-                <div className="h-8 w-px bg-line" />
-                <div className="text-right space-y-0.5">
-                  <p className="mono-label">Reva costs</p>
-                  <p className="font-display font-semibold text-lime-ink text-lg">
-                    {usd(roiDefaults.revaMonthlyPrice)}
-                    <span className="font-normal text-muted text-sm"> / mo</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* CTA */}
-              <Button
-                href={contact.telLink}
-                size="lg"
-                className="w-full"
-                arrow
-              >
-                Get my exact numbers — talk to {contact.salesName}
+              <Button href={contact.telLink} size="sm" arrow>
+                Get my exact numbers
               </Button>
-              <p className="text-center mono-label text-sage/70">
-                Free · No commitment · 15-min call
-              </p>
             </div>
           </div>
-        </Reveal>
+        </div>
       </div>
     </Section>
   );
 }
 
-/* ─── huge yearly number with count-up ───────────────────────────────────── */
-
-function YearlyLostNumber({ value }: { value: number }) {
-  const animVal = useAnimatedValue(value, 0.7);
+function Kpi({
+  icon,
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub: string;
+  tone: "loss" | "save" | "neutral";
+}) {
   return (
-    <p className="font-display text-6xl md:text-7xl font-bold text-white leading-none">
-      <span className="text-lime">{usd(animVal)}</span>
-      <span className="text-2xl text-sage/60 font-normal ml-2">/yr</span>
-    </p>
+    <div className="rounded-xl border border-line bg-surface p-3">
+      <div className="flex items-center gap-1.5 text-sage">
+        {icon}
+        <span className="mono-label !text-[0.6rem]">{label}</span>
+      </div>
+      <p
+        className={cn(
+          "mt-1.5 font-display text-2xl font-bold leading-none",
+          tone === "loss" && "text-amber",
+          tone === "save" && "text-lime-ink",
+          tone === "neutral" && "text-ink"
+        )}
+      >
+        {value}
+      </p>
+      <p className="mt-1 truncate text-[0.7rem] text-muted">{sub}</p>
+    </div>
   );
 }
