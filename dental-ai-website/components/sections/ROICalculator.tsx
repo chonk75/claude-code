@@ -110,7 +110,7 @@ function smoothPath(points: number[][], tension = 0.5): string {
    (Endpoint = 1 = true yearly total.) */
 const growthFrac = (m: number) => {
   const t = m / MONTHS;
-  return 0.32 * t + 0.68 * Math.pow(t, 3);
+  return 0.2 * t + 0.8 * Math.pow(t, 3.6);
 };
 
 export default function ROICalculator() {
