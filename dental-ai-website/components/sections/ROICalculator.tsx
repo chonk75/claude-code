@@ -107,7 +107,7 @@ function smoothPath(points: number[][], tension = 0.5): string {
 
 /* Smooth exponential "J-curve": flat along the bottom, then sweeps up and
    curves to nearly vertical at the end. (Endpoint = 1 = true yearly total.) */
-const GROWTH_K = 3.6;
+const GROWTH_K = 2.1;
 const growthFrac = (m: number) =>
   (Math.exp(GROWTH_K * (m / MONTHS)) - 1) / (Math.exp(GROWTH_K) - 1);
 
