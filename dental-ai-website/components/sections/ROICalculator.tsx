@@ -107,7 +107,7 @@ function smoothPath(points: number[][], tension = 0.5): string {
 
 /* Smooth exponential "J-curve": flat along the bottom, then sweeps up and
    curves to nearly vertical at the end. (Endpoint = 1 = true yearly total.) */
-const GROWTH_K = 2.1;
+const GROWTH_K = 1.7;
 const growthFrac = (m: number) =>
   (Math.exp(GROWTH_K * (m / MONTHS)) - 1) / (Math.exp(GROWTH_K) - 1);
 
@@ -152,7 +152,9 @@ export default function ROICalculator() {
   const innerH = H - padT - padB;
   const bottom = padT + innerH;
 
-  const yMax = Math.max(120000, lostPerYear * 1.15);
+  // Scale the axis to the actual loss so the curve fills the chart and rises
+  // high (instead of hugging the bottom). Endpoint lands near the top.
+  const yMax = Math.max(lostPerYear * 1.08, 1000);
   const x = (m: number) => padL + (innerW * m) / MONTHS;
   const y = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
   // Smooth exponential climb — flat start, sweeping up to near-vertical.
