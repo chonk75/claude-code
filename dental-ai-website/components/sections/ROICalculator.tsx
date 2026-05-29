@@ -83,6 +83,26 @@ function Slider({
 
 const MONTHS = 12;
 
+/* Catmull-Rom → cubic bezier: turns a list of points into a smooth, flowing
+   curve instead of straight segments. */
+function smoothPath(points: number[][]): string {
+  if (points.length < 2) return "";
+  const p = points;
+  let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`;
+  for (let i = 0; i < p.length - 1; i++) {
+    const p0 = p[i - 1] || p[i];
+    const p1 = p[i];
+    const p2 = p[i + 1];
+    const p3 = p[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
 export default function ROICalculator() {
   const [missed, setMissed] = useState(roiDefaults.missedCallsDefault);
   const [value, setValue] = useState(roiDefaults.avgAppointmentValue);
@@ -127,29 +147,22 @@ export default function ROICalculator() {
   const yMax = Math.max(120000, lostPerYear * 1.15);
   const x = (m: number) => padL + (innerW * m) / MONTHS;
   const y = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
-  const lossAt = (m: number) => lostPerMonth * m;
-  const revaAt = (m: number) => lostPerMonth * residual * m;
+  // Gentle convex growth so the line arcs upward (a flowing curve, not a
+  // ruler-straight diagonal). Endpoint at month 12 stays the true yearly total.
+  const frac = (m: number) => Math.pow(m / MONTHS, 1.32);
+  const lossAt = (m: number) => lostPerYear * frac(m);
+  const revaAt = (m: number) => lostPerYear * residual * frac(m);
 
   const lossPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(lossAt(m))]);
   const revaPts = Array.from({ length: MONTHS + 1 }, (_, m) => [x(m), y(revaAt(m))]);
 
-  const toLine = (pts: number[][]) =>
-    pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
-
-  const lossLine = toLine(lossPts);
-  const revaLine = toLine(revaPts);
-  // savings area = between the loss line (top) and reva line (bottom)
+  const lossLine = smoothPath(lossPts);
+  const revaLine = smoothPath(revaPts);
+  // savings area = the smooth loss curve (top) flowing back along the reva curve
   const savingsArea =
-    toLine(lossPts) +
-    " " +
-    revaPts
-      .slice()
-      .reverse()
-      .map((p) => `L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
-      .join(" ") +
-    " Z";
-  // residual loss area (under reva line)
-  const residualArea = `${toLine(revaPts)} L ${x(MONTHS).toFixed(1)} ${bottom} L ${x(0).toFixed(1)} ${bottom} Z`;
+    lossLine + " " + smoothPath([...revaPts].reverse()).replace(/^M/, "L") + " Z";
+  // residual loss area (under the reva curve)
+  const residualArea = `${revaLine} L ${x(MONTHS).toFixed(1)} ${bottom.toFixed(1)} L ${x(0).toFixed(1)} ${bottom.toFixed(1)} Z`;
 
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({
     yv: bottom - innerH * f,
