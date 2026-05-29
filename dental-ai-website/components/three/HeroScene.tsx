@@ -1,14 +1,8 @@
 "use client";
 
-import { Suspense, useRef } from "react";
+import { Component, Suspense, useRef, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import {
-  Float,
-  Sphere,
-  MeshDistortMaterial,
-  Environment,
-  Wireframe,
-} from "@react-three/drei";
+import { Float, Sphere, MeshDistortMaterial } from "@react-three/drei";
 import * as THREE from "three";
 
 /* ─── Inner scene contents (rendered inside Canvas) ─── */
@@ -68,9 +62,11 @@ function OrbInner() {
           <MeshDistortMaterial
             distort={0.45}
             speed={1.6}
-            roughness={0.08}
-            metalness={0.65}
+            roughness={0.25}
+            metalness={0.35}
             color="#5b50f0"
+            emissive="#4f46e5"
+            emissiveIntensity={0.35}
           />
         </Sphere>
 
@@ -97,10 +93,23 @@ function OrbInner() {
           />
         </Sphere>
       </Float>
-
-      <Environment preset="city" />
     </>
   );
+}
+
+/* ─── Error boundary so a WebGL failure never takes down the page ─── */
+class CanvasBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) return null; // fall back to the glow halo only
+    return this.props.children;
+  }
 }
 
 /* ─── Exported component ─── */
@@ -127,21 +136,23 @@ export default function HeroScene() {
       </div>
 
       {/* Three.js canvas */}
-      <Canvas
-        dpr={[1, 2]}
-        camera={{ position: [0, 0, 4], fov: 45 }}
-        gl={{ antialias: true, alpha: true }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-        }}
-      >
-        <Suspense fallback={null}>
-          <OrbInner />
-        </Suspense>
-      </Canvas>
+      <CanvasBoundary>
+        <Canvas
+          dpr={[1, 2]}
+          camera={{ position: [0, 0, 4], fov: 45 }}
+          gl={{ antialias: true, alpha: true }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <Suspense fallback={null}>
+            <OrbInner />
+          </Suspense>
+        </Canvas>
+      </CanvasBoundary>
     </div>
   );
 }

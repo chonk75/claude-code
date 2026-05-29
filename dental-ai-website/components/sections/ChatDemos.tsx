@@ -293,12 +293,14 @@ interface PhoneMockupProps {
 }
 
 function PhoneMockup({ conversation, visibleCount, showTyping }: PhoneMockupProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { clinic, clinicInitials, accentFrom, accentTo, messages } = conversation;
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // Scroll ONLY the inner messages list — never the page/window.
+    const el = scrollContainerRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
   }, [visibleCount, showTyping]);
 
@@ -371,6 +373,7 @@ function PhoneMockup({ conversation, visibleCount, showTyping }: PhoneMockupProp
 
       {/* Messages area */}
       <div
+        ref={scrollContainerRef}
         className="relative flex flex-col gap-2.5 px-3 py-3 overflow-y-auto"
         style={{
           height: 380,
@@ -400,8 +403,6 @@ function PhoneMockup({ conversation, visibleCount, showTyping }: PhoneMockupProp
             <TypingIndicator key={`${conversation.id}-typing`} />
           )}
         </AnimatePresence>
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input bar */}
