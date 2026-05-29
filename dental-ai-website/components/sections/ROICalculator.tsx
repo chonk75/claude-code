@@ -105,11 +105,13 @@ function smoothPath(points: number[][], tension = 0.5): string {
   return d;
 }
 
-/* Smooth exponential "J-curve": flat along the bottom, then sweeps up and
-   curves to nearly vertical at the end. (Endpoint = 1 = true yearly total.) */
-const GROWTH_K = 5;
-const growthFrac = (m: number) =>
-  (Math.exp(GROWTH_K * (m / MONTHS)) - 1) / (Math.exp(GROWTH_K) - 1);
+/* Explosive growth curve: climbs from the very start (linear lift-off) and
+   keeps accelerating into a steep surge at the end — no dead-flat section.
+   (Endpoint = 1 = true yearly total.) */
+const growthFrac = (m: number) => {
+  const t = m / MONTHS;
+  return 0.32 * t + 0.68 * Math.pow(t, 3);
+};
 
 export default function ROICalculator() {
   const [missed, setMissed] = useState(roiDefaults.missedCallsDefault);
