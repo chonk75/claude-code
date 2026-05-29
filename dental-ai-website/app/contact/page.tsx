@@ -79,7 +79,7 @@ export default function ContactPage() {
       icon: <Phone size={20} />,
       label: `Call ${contact.salesName}`,
       description:
-        "The fastest way to get answers, see a live demo, or kick off your onboarding. Aiden picks up every time — no assistant, no queue.",
+        `The fastest way to get answers, see a live demo, or kick off your onboarding. ${contact.salesName} picks up every time — no assistant, no queue.`,
       detail: contact.phoneDisplay,
       href: contact.telLink,
       tag: "FASTEST",
@@ -89,7 +89,7 @@ export default function ContactPage() {
       icon: <MessageSquare size={20} />,
       label: `Text ${contact.salesName}`,
       description:
-        "Prefer async? Send Aiden a message and he'll reply within the hour. Great for sharing details or asking quick questions.",
+        `Prefer async? Send ${contact.salesName} a message and he'll reply within the hour. Great for sharing details or asking quick questions.`,
       detail: `Text ${contact.phoneDisplay}`,
       href: contact.smsLink,
       tag: "< 1 HR REPLY",

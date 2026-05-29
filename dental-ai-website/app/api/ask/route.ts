@@ -54,8 +54,8 @@ const knowledge: { keywords: string[]; answer: string }[] = [
     answer: `There are live voice demos and WhatsApp-style chat demos on the homepage. Want a demo tailored to your clinic? Call or text ${contact.salesName} at ${contact.phoneDisplay}.`,
   },
   {
-    keywords: ["team", "who", "founder", "aiden", "build"],
-    answer: `${contact.salesName} handles sales, demos and onboarding (${contact.phoneDisplay}). The founder builds and trains every voice and chat agent end-to-end. See the Team page for more.`,
+    keywords: ["team", "who", "founder", "co-founder", "ayden", "aiden", "yonatan", "build"],
+    answer: `${brand.name} is built by two co-founders: ${contact.salesName} handles sales, demos and onboarding (${contact.phoneDisplay}), and Yonatan builds and trains every voice and chat agent end-to-end. See the Team page for more.`,
   },
   {
     keywords: ["contact", "talk", "reach", "human", "sales", "buy", "start"],

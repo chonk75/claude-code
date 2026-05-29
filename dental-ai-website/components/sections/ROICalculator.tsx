@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
-import { PhoneMissed, Clock, TrendingUp, Sparkles } from "lucide-react";
+import { PhoneMissed, Clock, TrendingUp, Sparkles, DollarSign } from "lucide-react";
 import Section from "@/components/ui/Section";
 import Pill from "@/components/ui/Pill";
 import Button from "@/components/ui/Button";
 import { brand, contact, roiDefaults } from "@/lib/config";
 import { usd, cn } from "@/lib/utils";
+
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
 /* Smoothly eases a displayed number toward its target whenever the target
    changes — gives the KPIs a polished "catch-up" feel while dragging. */
@@ -83,12 +85,11 @@ function Slider({
 
 const MONTHS = 12;
 
-/* Catmull-Rom → cubic bezier. `tension` < 1 makes the curve looser / curvier
-   (controls how far the bezier handles reach). */
+/* Catmull-Rom → cubic bezier. Lower tension = curvier. */
 function smoothPath(points: number[][], tension = 0.5): string {
   if (points.length < 2) return "";
   const p = points;
-  const k = (1 - tension) * 2 + 1; // handle length factor (smaller tension → curvier)
+  const k = (1 - tension) * 2 + 1;
   const f = 6 / k;
   let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`;
   for (let i = 0; i < p.length - 1; i++) {
@@ -105,100 +106,187 @@ function smoothPath(points: number[][], tension = 0.5): string {
   return d;
 }
 
-/* Explosive growth curve: climbs from the very start (linear lift-off) and
-   keeps accelerating into a steep surge at the end — no dead-flat section.
-   (Endpoint = 1 = true yearly total.) */
+/* Explosive growth shape — climbs from the start, surges at the end. */
 const growthFrac = (m: number) => {
   const t = m / MONTHS;
   return 0.2 * t + 0.8 * Math.pow(t, 3.6);
 };
 
+/* ───────────────────────────────────────────────────────────
+   Reusable growth chart. `heightFrac` (0–1) drives how TALL the
+   curve climbs, so dragging a slider literally moves it up/down.
+   ─────────────────────────────────────────────────────────── */
+const STEPS = 48;
+const W = 560;
+const H = 220;
+const padL = 8;
+const padR = 8;
+const padT = 16;
+const padB = 24;
+const innerW = W - padL - padR;
+const innerH = H - padT - padB;
+const bottom = padT + innerH;
+
+function GrowthChart({
+  total,
+  recovery,
+  heightFrac,
+  fmt,
+}: {
+  total: number;
+  recovery: number;
+  heightFrac: number;
+  fmt: (n: number) => string;
+}) {
+  const [hover, setHover] = useState<number | null>(null);
+  const residual = 1 - recovery;
+  // Peak of the curve sits at `heightFrac` of the chart height.
+  const yMax = total > 0 ? total / clamp(heightFrac, 0.04, 0.98) : 1;
+
+  const x = (m: number) => padL + (innerW * m) / MONTHS;
+  const yv = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
+  const lossAt = (m: number) => total * growthFrac(m);
+  const revaAt = (m: number) => total * residual * growthFrac(m);
+
+  const lossPts = Array.from({ length: STEPS + 1 }, (_, i) => {
+    const m = (i / STEPS) * MONTHS;
+    return [x(m), yv(lossAt(m))];
+  });
+  const revaPts = Array.from({ length: STEPS + 1 }, (_, i) => {
+    const m = (i / STEPS) * MONTHS;
+    return [x(m), yv(revaAt(m))];
+  });
+
+  const lossLine = smoothPath(lossPts);
+  const revaLine = smoothPath(revaPts);
+  const savingsArea =
+    lossLine + " " + smoothPath([...revaPts].reverse()).replace(/^M/, "L") + " Z";
+  const residualArea = `${revaLine} L ${x(MONTHS).toFixed(1)} ${bottom.toFixed(1)} L ${x(0).toFixed(1)} ${bottom.toFixed(1)} Z`;
+
+  const ticks = [0, 0.5, 1].map((f) => ({ yy: bottom - innerH * f, label: fmt(yMax * f) }));
+  const gid = `g-${fmt(1).replace(/[^a-z]/gi, "")}-${Math.round(total)}`;
+
+  function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const m = Math.round(((e.clientX - r.left) / r.width) * MONTHS);
+    setHover(clamp(m, 1, MONTHS));
+  }
+
+  return (
+    <div className="relative" onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full select-none">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#7cdf13" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#7cdf13" stopOpacity="0.06" />
+          </linearGradient>
+        </defs>
+
+        {ticks.map((t, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - padR} y1={t.yy} y2={t.yy} stroke="rgba(15,44,26,0.08)" strokeDasharray="3 5" />
+            <text x={padL + 2} y={t.yy - 4} className="fill-sage" style={{ font: "600 9px var(--font-mono)" }}>
+              {t.label}
+            </text>
+          </g>
+        ))}
+
+        <motion.path d={residualArea} fill="rgba(224,133,46,0.10)" initial={false} animate={{ d: residualArea }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
+        <motion.path d={savingsArea} fill={`url(#${gid})`} initial={false} animate={{ d: savingsArea }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
+        <motion.path d={lossLine} fill="none" stroke="#163a22" strokeOpacity={0.5} strokeWidth={2.5} strokeDasharray="6 5" strokeLinecap="round" initial={false} animate={{ d: lossLine }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
+        <motion.path d={revaLine} fill="none" stroke="#3f7a08" strokeWidth={3} strokeLinecap="round" initial={false} animate={{ d: revaLine }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
+        <motion.circle r={4.5} fill="#163a22" initial={false} animate={{ cx: x(MONTHS), cy: yv(lossAt(MONTHS)) }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }} />
+
+        {hover != null && (
+          <g>
+            <line x1={x(hover)} x2={x(hover)} y1={padT} y2={bottom} stroke="rgba(15,44,26,0.25)" />
+            <circle cx={x(hover)} cy={yv(lossAt(hover))} r={3.5} fill="#163a22" />
+            <circle cx={x(hover)} cy={yv(revaAt(hover))} r={3.5} fill="#3f7a08" />
+          </g>
+        )}
+
+        {[0, 6, 12].map((m) => (
+          <text key={m} x={x(m)} y={H - 6} textAnchor={m === 0 ? "start" : m === 12 ? "end" : "middle"} className="fill-sage" style={{ font: "600 9px var(--font-mono)" }}>
+            {m === 0 ? "now" : `M${m}`}
+          </text>
+        ))}
+      </svg>
+
+      {hover != null && (
+        <div
+          className="pointer-events-none absolute top-1 z-10 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[0.7rem] shadow-lg"
+          style={{ left: `${(x(hover) / W) * 100}%` }}
+        >
+          <p className="mono-label !text-[0.55rem]">Month {hover}</p>
+          <p className="text-ink">Lost: <span className="font-semibold">{fmt(lossAt(hover))}</span></p>
+          <p className="text-lime-ink">Saved: <span className="font-semibold">{fmt(lossAt(hover) - revaAt(hover))}</span></p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function fmtHours(n: number) {
+  return `${Math.round(n)}h`;
+}
+
+function MiniKpi({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone: "loss" | "save" }) {
+  return (
+    <div className="rounded-xl border border-line bg-surface px-3 py-2">
+      <div className="flex items-center gap-1.5 text-sage">
+        {icon}
+        <span className="mono-label !text-[0.58rem]">{label}</span>
+      </div>
+      <p className={cn("mt-0.5 font-display text-xl font-bold leading-none", tone === "loss" ? "text-amber" : "text-lime-ink")}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Legend() {
+  return (
+    <div className="mt-2 flex items-center gap-4 text-[0.7rem] text-muted">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-sm bg-lime/60" /> Saved with {brand.agentName}
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="inline-block h-0 w-4 border-t-2 border-dashed border-ink/50" /> Lost without
+      </span>
+    </div>
+  );
+}
+
 export default function ROICalculator() {
   const [missed, setMissed] = useState(roiDefaults.missedCallsDefault);
   const [value, setValue] = useState(roiDefaults.avgAppointmentValue);
   const [minutes, setMinutes] = useState(roiDefaults.minutesPerCall);
-  const [hover, setHover] = useState<number | null>(null);
 
   const recovery = roiDefaults.revaRecoveryRate;
-  const residual = 1 - recovery;
 
   // Money
   const lostPerMonth = missed * value;
   const lostPerYear = lostPerMonth * MONTHS;
   const savedPerYear = lostPerYear * recovery;
   const revaCostYear = roiDefaults.revaMonthlyPrice * MONTHS;
-  const netGain = savedPerYear - revaCostYear;
   const roiX = revaCostYear > 0 ? savedPerYear / revaCostYear : 0;
 
   // Time
   const minutesPerMonth = missed * minutes;
   const hoursPerYear = (minutesPerMonth * MONTHS) / 60;
+  const hoursSavedPerYear = hoursPerYear * recovery;
   const workDays = hoursPerYear / 8;
 
-  // Eased display values
+  // Curve heights are driven directly by the sliders → the graphs move.
+  const moneyHeight = clamp(0.16 + 0.8 * (missed / 60), 0.06, 0.96);
+  const timeHeight = clamp(0.16 + 0.8 * (minutes / 15), 0.06, 0.96);
+
+  // Eased KPI displays
   const dLostYear = useEased(lostPerYear);
   const dSavedYear = useEased(savedPerYear);
   const dHours = useEased(hoursPerYear);
+  const dHoursSaved = useEased(hoursSavedPerYear);
   const dRoi = useEased(roiX);
-  const dLostMonth = useEased(lostPerMonth);
-  const dNet = useEased(netGain);
-
-  /* ── Chart geometry ── */
-  const W = 720;
-  const H = 340;
-  const padL = 6;
-  const padR = 6;
-  const padT = 12;
-  const padB = 26;
-  const innerW = W - padL - padR;
-  const innerH = H - padT - padB;
-  const bottom = padT + innerH;
-
-  // Scale the axis so the curve explodes right up to the top of the chart.
-  const yMax = Math.max(lostPerYear * 1.02, 1000);
-  const x = (m: number) => padL + (innerW * m) / MONTHS;
-  const y = (v: number) => padT + innerH * (1 - Math.min(1, v / yMax));
-  // Smooth exponential climb — flat start, sweeping up to near-vertical.
-  // Endpoint at month 12 stays the true yearly total.
-  const lossAt = (m: number) => lostPerYear * growthFrac(m);
-  const revaAt = (m: number) => lostPerYear * residual * growthFrac(m);
-
-  // sample more densely so the curve is silky-smooth
-  const STEPS = 48;
-  const lossPts = Array.from({ length: STEPS + 1 }, (_, i) => {
-    const m = (i / STEPS) * MONTHS;
-    return [x(m), y(lossAt(m))];
-  });
-  const revaPts = Array.from({ length: STEPS + 1 }, (_, i) => {
-    const m = (i / STEPS) * MONTHS;
-    return [x(m), y(revaAt(m))];
-  });
-
-  const T = 0.5;
-  const lossLine = smoothPath(lossPts, T);
-  const revaLine = smoothPath(revaPts, T);
-  // savings area = the smooth loss curve (top) flowing back along the reva curve
-  const savingsArea =
-    lossLine + " " + smoothPath([...revaPts].reverse(), T).replace(/^M/, "L") + " Z";
-  // residual loss area (under the reva curve)
-  const residualArea = `${revaLine} L ${x(MONTHS).toFixed(1)} ${bottom.toFixed(1)} L ${x(0).toFixed(1)} ${bottom.toFixed(1)} Z`;
-
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => ({
-    yv: bottom - innerH * f,
-    label: usd(yMax * f).replace("$", "$"),
-  }));
-
-  const hoverData =
-    hover != null
-      ? { month: hover, lost: lossAt(hover), saved: lossAt(hover) - revaAt(hover) }
-      : null;
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const frac = (e.clientX - rect.left) / rect.width;
-    const m = Math.round(frac * MONTHS);
-    setHover(Math.max(1, Math.min(MONTHS, m)));
-  }
 
   return (
     <Section
@@ -211,7 +299,7 @@ export default function ROICalculator() {
           <span className="text-lime-ink">losing</span>.
         </>
       }
-      intro="Drag the sliders to match your practice. The graph climbs with every missed call — and shows what Reva puts back."
+      intro="Drag the sliders to match your practice — the graphs climb with every missed call and minute, and show what Reva puts back."
     >
       <style>{`
         .roi-range::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:9999px; background:#163a22; border:3px solid #7cdf13; box-shadow:0 2px 8px rgba(15,44,26,.35); cursor:pointer; }
@@ -219,7 +307,6 @@ export default function ROICalculator() {
       `}</style>
 
       <div className="mt-12 card overflow-hidden">
-        {/* dashboard header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-bg-soft px-5 py-3.5 dotted-tight">
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
             <span className="h-2 w-2 animate-pulse-dot rounded-full bg-lime" />
@@ -229,20 +316,12 @@ export default function ROICalculator() {
         </div>
 
         <div className="grid lg:grid-cols-[300px_1fr]">
-          {/* ── Controls ── */}
+          {/* Controls */}
           <div className="space-y-7 border-b border-line p-6 lg:border-b-0 lg:border-r">
             <span className="mono-label">Your practice numbers</span>
 
-            <Slider
-              label="Missed calls / month"
-              value={missed}
-              min={0}
-              max={60}
-              suffix=" calls"
-              onChange={setMissed}
-            />
+            <Slider label="Missed calls / month" value={missed} min={0} max={60} suffix=" calls" onChange={setMissed} />
 
-            {/* typed appointment value */}
             <div>
               <span className="mono-label">Average appointment value</span>
               <div className="mt-3 flex items-center rounded-xl border border-line bg-surface focus-within:ring-2 focus-within:ring-lime">
@@ -260,254 +339,74 @@ export default function ROICalculator() {
               </div>
             </div>
 
-            <Slider
-              label="Minutes per call"
-              value={minutes}
-              min={1}
-              max={15}
-              suffix=" min"
-              onChange={setMinutes}
-            />
+            <Slider label="Minutes per call" value={minutes} min={1} max={15} suffix=" min" onChange={setMinutes} />
 
             <div className="rounded-xl border border-line bg-mint p-3">
-              <p className="mono-label !text-lime-ink">time on the phone</p>
-              <p className="mt-1 text-sm text-ink">
-                <span className="font-display text-lg font-bold">{minutesPerMonth}</span> min /
-                month chasing missed calls
+              <p className="mono-label !text-lime-ink">return on investment</p>
+              <p className="mt-1 font-display text-2xl font-bold text-ink">
+                {dRoi.toFixed(0)}× <span className="text-sm font-medium text-muted">on Reva&apos;s cost</span>
               </p>
             </div>
           </div>
 
-          {/* ── Chart + KPIs ── */}
-          <div className="p-6">
-            {/* KPI row */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Kpi
-                icon={<PhoneMissed className="h-3.5 w-3.5" />}
-                label="Lost / year"
-                value={usd(dLostYear)}
-                tone="loss"
-                sub={`${usd(dLostMonth)}/mo`}
-              />
-              <Kpi
-                icon={<Sparkles className="h-3.5 w-3.5" />}
-                label="Reva saves / yr"
-                value={usd(dSavedYear)}
-                tone="save"
-                sub={`net ${usd(dNet)}`}
-              />
-              <Kpi
-                icon={<Clock className="h-3.5 w-3.5" />}
-                label="Hours lost / yr"
-                value={`${dHours.toFixed(0)}h`}
-                tone="neutral"
-                sub={`≈ ${workDays.toFixed(1)} work days`}
-              />
-              <Kpi
-                icon={<TrendingUp className="h-3.5 w-3.5" />}
-                label="Return"
-                value={`${dRoi.toFixed(0)}×`}
-                tone="save"
-                sub="on Reva's cost"
-              />
-            </div>
-
-            {/* legend */}
-            <div className="mt-6 flex items-center gap-5 text-xs text-muted">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-sm bg-lime/60" /> You keep this with {brand.agentName}
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="inline-block h-0 w-4 border-t-2 border-dashed border-ink/50" /> Lost without {brand.agentName}
-              </span>
-            </div>
-
-            {/* chart */}
-            <div
-              className="relative mt-3"
-              onMouseMove={onMove}
-              onMouseLeave={() => setHover(null)}
-            >
-              <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full select-none">
-                <defs>
-                  <linearGradient id="saveGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7cdf13" stopOpacity="0.55" />
-                    <stop offset="100%" stopColor="#7cdf13" stopOpacity="0.08" />
-                  </linearGradient>
-                </defs>
-
-                {/* gridlines + y ticks */}
-                {ticks.map((t, i) => (
-                  <g key={i}>
-                    <line
-                      x1={padL}
-                      x2={W - padR}
-                      y1={t.yv}
-                      y2={t.yv}
-                      stroke="rgba(15,44,26,0.08)"
-                      strokeDasharray="3 5"
-                    />
-                    <text x={padL + 2} y={t.yv - 4} className="fill-sage" style={{ font: "600 10px var(--font-mono)" }}>
-                      {t.label}
-                    </text>
-                  </g>
-                ))}
-
-                {/* residual loss (faint, under Reva line) */}
-                <motion.path
-                  d={residualArea}
-                  fill="rgba(224,133,46,0.10)"
-                  initial={false}
-                  animate={{ d: residualArea }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                />
-                {/* savings area */}
-                <motion.path
-                  d={savingsArea}
-                  fill="url(#saveGrad)"
-                  initial={false}
-                  animate={{ d: savingsArea }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                />
-                {/* loss line (dashed ceiling) */}
-                <motion.path
-                  d={lossLine}
-                  fill="none"
-                  stroke="#163a22"
-                  strokeOpacity={0.55}
-                  strokeWidth={2.5}
-                  strokeDasharray="6 5"
-                  strokeLinecap="round"
-                  initial={false}
-                  animate={{ d: lossLine }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                />
-                {/* reva line (solid lime) */}
-                <motion.path
-                  d={revaLine}
-                  fill="none"
-                  stroke="#3f7a08"
-                  strokeWidth={3}
-                  strokeLinecap="round"
-                  initial={false}
-                  animate={{ d: revaLine }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                />
-
-                {/* endpoint marker on loss line */}
-                <motion.circle
-                  r={5}
-                  fill="#163a22"
-                  initial={false}
-                  animate={{ cx: x(MONTHS), cy: y(lossAt(MONTHS)) }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                />
-
-                {/* hover guide */}
-                {hover != null && (
-                  <g>
-                    <line
-                      x1={x(hover)}
-                      x2={x(hover)}
-                      y1={padT}
-                      y2={bottom}
-                      stroke="rgba(15,44,26,0.25)"
-                    />
-                    <circle cx={x(hover)} cy={y(lossAt(hover))} r={4} fill="#163a22" />
-                    <circle cx={x(hover)} cy={y(revaAt(hover))} r={4} fill="#3f7a08" />
-                  </g>
-                )}
-
-                {/* month labels */}
-                {[0, 3, 6, 9, 12].map((m) => (
-                  <text
-                    key={m}
-                    x={x(m)}
-                    y={H - 6}
-                    textAnchor={m === 0 ? "start" : m === 12 ? "end" : "middle"}
-                    className="fill-sage"
-                    style={{ font: "600 10px var(--font-mono)" }}
-                  >
-                    {m === 0 ? "now" : `M${m}`}
-                  </text>
-                ))}
-              </svg>
-
-              {/* hover tooltip */}
-              {hoverData && (
-                <div
-                  className="pointer-events-none absolute top-2 z-10 -translate-x-1/2 rounded-xl border border-line bg-surface px-3 py-2 text-xs shadow-lg"
-                  style={{ left: `${(x(hoverData.month) / W) * 100}%` }}
-                >
-                  <p className="mono-label !text-[0.6rem]">Month {hoverData.month}</p>
-                  <p className="mt-1 text-ink">
-                    Lost: <span className="font-semibold">{usd(hoverData.lost)}</span>
-                  </p>
-                  <p className="text-lime-ink">
-                    Saved: <span className="font-semibold">{usd(hoverData.saved)}</span>
-                  </p>
+          {/* Two charts */}
+          <div className="divide-y divide-line">
+            {/* Graph 1 — calls & money */}
+            <div className="p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="mono-label">Calls → Revenue</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <MiniKpi icon={<PhoneMissed className="h-3.5 w-3.5" />} label="Lost / yr" value={usd(dLostYear)} tone="loss" />
+                  <MiniKpi icon={<DollarSign className="h-3.5 w-3.5" />} label="Reva saves / yr" value={usd(dSavedYear)} tone="save" />
                 </div>
-              )}
+              </div>
+              <div className="mt-4">
+                <GrowthChart total={lostPerYear} recovery={recovery} heightFrac={moneyHeight} fmt={usd} />
+                <Legend />
+              </div>
             </div>
 
-            {/* comparison + CTA */}
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-bg-soft px-4 py-3">
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-muted">
-                  Front-desk hire{" "}
-                  <span className="font-mono text-ink line-through">
-                    {usd(roiDefaults.receptionistMonthlyCost)}/mo
-                  </span>
-                </span>
-                <span className="text-sage">vs</span>
-                <span className="text-muted">
-                  {brand.agentName}{" "}
-                  <span className="font-mono font-semibold text-lime-ink">
-                    {usd(roiDefaults.revaMonthlyPrice)}/mo
-                  </span>
-                </span>
+            {/* Graph 2 — minutes & time */}
+            <div className="p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="mono-label">Minutes → Time</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <MiniKpi icon={<Clock className="h-3.5 w-3.5" />} label="Hours lost / yr" value={fmtHours(dHours)} tone="loss" />
+                  <MiniKpi icon={<Sparkles className="h-3.5 w-3.5" />} label="Reva saves / yr" value={fmtHours(dHoursSaved)} tone="save" />
+                </div>
               </div>
-              <Button href={contact.telLink} size="sm" arrow>
-                Get my exact numbers
-              </Button>
+              <div className="mt-4">
+                <GrowthChart total={hoursPerYear} recovery={recovery} heightFrac={timeHeight} fmt={fmtHours} />
+                <Legend />
+              </div>
+              <p className="mt-3 text-xs text-muted">
+                That&apos;s about{" "}
+                <span className="font-semibold text-ink">{workDays.toFixed(1)} full work days</span> a year your
+                front desk spends on missed calls.
+              </p>
             </div>
           </div>
         </div>
+
+        {/* comparison + CTA */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line bg-bg-soft px-5 py-4">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="inline-flex items-center gap-1.5 text-lime-ink">
+              <TrendingUp className="h-4 w-4" />
+              <span className="font-mono font-semibold">{dRoi.toFixed(0)}× return</span>
+            </span>
+            <span className="text-muted">
+              Front desk{" "}
+              <span className="font-mono text-ink line-through">{usd(roiDefaults.receptionistMonthlyCost)}/mo</span>
+              {" "}vs Reva{" "}
+              <span className="font-mono font-semibold text-lime-ink">{usd(roiDefaults.revaMonthlyPrice)}/mo</span>
+            </span>
+          </div>
+          <Button href={contact.telLink} size="sm" arrow>
+            Get my exact numbers
+          </Button>
+        </div>
       </div>
     </Section>
-  );
-}
-
-function Kpi({
-  icon,
-  label,
-  value,
-  sub,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub: string;
-  tone: "loss" | "save" | "neutral";
-}) {
-  return (
-    <div className="rounded-xl border border-line bg-surface p-3">
-      <div className="flex items-center gap-1.5 text-sage">
-        {icon}
-        <span className="mono-label !text-[0.6rem]">{label}</span>
-      </div>
-      <p
-        className={cn(
-          "mt-1.5 font-display text-2xl font-bold leading-none",
-          tone === "loss" && "text-amber",
-          tone === "save" && "text-lime-ink",
-          tone === "neutral" && "text-ink"
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-1 truncate text-[0.7rem] text-muted">{sub}</p>
-    </div>
   );
 }

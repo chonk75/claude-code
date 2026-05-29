@@ -103,7 +103,7 @@ export default function ROIPage() {
       {/* Mid CTA */}
       <Section index="09" label="NEXT STEP" center
         title={<>Want <span className="text-lime-ink">your</span> exact numbers?</>}
-        intro="Aiden will pull your real missed-call data and show you the recovery in minutes.">
+        intro="Ayden will pull your real missed-call data and show you the recovery in minutes.">
         <div className="mt-8 flex justify-center">
           <Button href={contact.telLink} size="lg" arrow>
             <PhoneCall className="h-5 w-5" />

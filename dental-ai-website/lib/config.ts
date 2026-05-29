@@ -22,13 +22,13 @@ export const brand = {
 };
 
 /**
- * CONTACT — only Aiden's number is ever shown publicly.
- * The founder's personal number is intentionally NOT included anywhere.
+ * CONTACT — only Ayden's number is ever shown publicly.
+ * Yonatan's personal number is intentionally NOT included anywhere.
  */
 export const contact = {
-  /** Aiden handles all sales / inbound. This is the ONLY number shown. */
-  salesName: "Aiden",
-  salesRole: "Head of Sales",
+  /** Ayden handles all sales / inbound. This is the ONLY number shown. */
+  salesName: "Ayden",
+  salesRole: "Co-Founder · Sales & Partnerships",
   /** Pretty version shown to humans. */
   phoneDisplay: "+1 (949) 397-8560",
   /** E.164 digits only — used to build the click-to-call / SMS / WhatsApp links. */
@@ -49,24 +49,24 @@ export const contact = {
   email: "hello@reva.ai",
 };
 
-/** Team — founder's personal phone is deliberately omitted. */
+/** Team — both are co-founders. Yonatan's personal phone is deliberately omitted. */
 export const team = [
   {
-    name: "Aiden",
-    role: "Head of Sales & Partnerships",
-    bio: "Aiden helps dental clinics map out exactly how many calls — and how much revenue — they're losing today, then gets Reva live in days. He's your single point of contact for demos, pricing, and onboarding.",
-    // Aiden is the public contact — call / text buttons point to his number.
+    name: "Ayden",
+    role: "Co-Founder · Sales & Partnerships",
+    bio: "Ayden helps dental clinics map out exactly how many calls — and how much revenue — they're losing today, then gets Reva live in days. He's your single point of contact for demos, pricing, and onboarding.",
+    // Ayden is the public contact — call / text buttons point to his number.
     showContact: true,
-    initials: "AI",
+    initials: "AY",
     accent: "cyan" as const,
   },
   {
-    name: "Yona", // ← change to your name
-    role: "Founder & AI Engineer",
+    name: "Yonatan",
+    role: "Co-Founder · AI Engineer",
     bio: "Builds and trains every voice and chat agent end-to-end — the conversation design, the dental knowledge base, the booking integrations, and the infrastructure that keeps Reva reliable on every call.",
-    // Founder's number is private and never displayed.
+    // Yonatan's number is private and never displayed.
     showContact: false,
-    initials: "YO",
+    initials: "YN",
     accent: "violet" as const,
   },
 ];
